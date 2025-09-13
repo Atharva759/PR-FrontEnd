@@ -2,6 +2,7 @@ import { TbLogout } from "react-icons/tb";
 import { Link, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
+import toast from "react-hot-toast";
 
 const UserDashboard = () => {
   const data = [
@@ -27,13 +28,17 @@ const UserDashboard = () => {
   const navigate = useNavigate();
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-      alert("Logged out successfully!");
-      navigate("/");
-    } catch (error) {
-      alert("Logout failed: " + error.message);
+    toast.promise(
+    signOut(auth),
+    {
+      loading: 'Logging out...',
+      success: () => {
+        navigate("/");
+        return <p>Logged out successfully!</p>;
+      },
+      error: (err) => <b>Logout failed: {err.message}</b>,
     }
+  );
   };
 
   return (

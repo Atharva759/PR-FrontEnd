@@ -11,33 +11,38 @@ import {
 } from "firebase/auth";
 import { getDoc, setDoc, doc } from "firebase/firestore";
 import { FcGoogle } from "react-icons/fc";
+import { toast } from "react-hot-toast";
 
 const actionCodeSettings = {
-  url: window.location.origin + "/login",
+  url: window.location.origin + "/auth",
   handleCodeInApp: true,
 };
 
 const googleProvider = new GoogleAuthProvider();
 
-const Login = () => {
+const Auth = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Handle Email Link Sign-in Flow
   useEffect(() => {
     const handleEmailLinkSignIn = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
-        let emailForSignIn = window.localStorage.getItem("emailForSignIn");
-
-        if (!emailForSignIn) {
-          emailForSignIn = window.prompt("Please provide your email:");
-        }
+        let emailForSignIn =
+          window.localStorage.getItem("emailForSignIn") ||
+          window.prompt("Please provide your email:");
 
         try {
-          const result = await signInWithEmailLink(auth, emailForSignIn, window.location.href);
+          const result = await toast.promise(
+            signInWithEmailLink(auth, emailForSignIn, window.location.href),
+            {
+              loading: "Signing you in...",
+              success: "Signed in successfully!",
+              error: (err) => `Sign-in failed: ${err.message}`,
+            }
+          );
+
           localStorage.removeItem("emailForSignIn");
 
           const user = result.user;
@@ -46,22 +51,23 @@ const Login = () => {
 
           if (!userDoc.exists()) {
             const signupName = localStorage.getItem("signupName") || "User";
+
             await setDoc(userRef, {
               name: signupName,
               email: user.email,
               role: "employee",
               provider: "email",
             });
+
             localStorage.removeItem("signupName");
-            alert(`Welcome, ${signupName}! Your account has been created.`);
+            toast.success(`Welcome, ${signupName}! Your account has been created.`);
           } else {
-            alert(`Welcome back, ${userDoc.data().name || user.email}!`);
+            toast.success(`Welcome back, ${userDoc.data().name || user.email}!`);
           }
 
           navigate("/dashboard");
         } catch (error) {
           console.error("Email sign-in error:", error);
-          alert("Failed to sign in: " + error.message);
         }
       }
     };
@@ -71,52 +77,54 @@ const Login = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          navigate("/dashboard");
-        }
+        if (userDoc.exists()) navigate("/dashboard");
       }
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  // Handle Email Sign-Up/Login
+  
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (isSignup && !name.trim()) {
+      toast.error("Please enter your name.");
+      return;
+    }
 
     try {
-      if (isSignup && !name.trim()) {
-        alert("Please enter your name.");
-        setLoading(false);
-        return;
-      }
-
       if (isSignup) {
         localStorage.setItem("signupName", name.trim());
       }
 
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      localStorage.setItem("emailForSignIn", email);
+      await toast.promise(
+        sendSignInLinkToEmail(auth, email, actionCodeSettings),
+        {
+          loading: "Sending magic link...",
+          success: `Check your inbox! A sign-in link was sent to ${email}.`,
+          error: (err) => `Failed to send link: ${err.message}`,
+        }
+      );
 
-      alert(`Check your inbox! A sign-in link was sent to ${email}.`);
+      localStorage.setItem("emailForSignIn", email);
       setEmail("");
       setName("");
     } catch (error) {
       console.error("Email link error:", error);
-      alert("Failed to send sign-in link: " + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Google Sign-in Flow
+  
   const handleGoogleLogin = async () => {
-    setLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      const result = await toast.promise(signInWithPopup(auth, googleProvider), {
+        loading: "Signing in with Google...",
+        success: "Logged in with Google!",
+        error: (err) => `Google sign-in failed: ${err.message}`,
+      });
 
+      const user = result.user;
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
@@ -129,42 +137,35 @@ const Login = () => {
         });
       }
 
-      alert("Logged in with Google!");
       navigate("/dashboard");
     } catch (error) {
-      console.error("Google sign-in error:", error);
-      alert("Google sign-in failed: " + error.message);
-    } finally {
-      setLoading(false);
+      console.error("Google login error:", error);
     }
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-900">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">
-        {/* Tabs: Sign Up / Login */}
+        
         <div className="flex mb-8 gap-4 bg-blue-200 rounded-full p-1">
           <button
             onClick={() => setIsSignup(true)}
-            className={`text-lg font-semibold px-6 py-2 w-1/2 rounded-full transition-all duration-300 ${
+            className={`text-lg font-semibold px-6 py-2 w-1/2 rounded-full transition-all duration-300 cursor-pointer ${
               isSignup ? "bg-blue-600 text-white shadow-md" : "text-blue-600"
             }`}
-            disabled={loading}
           >
             Sign Up
           </button>
           <button
             onClick={() => setIsSignup(false)}
-            className={`text-lg font-semibold px-6 py-2 w-1/2 rounded-full transition-all duration-300 ${
+            className={`text-lg font-semibold px-6 py-2 w-1/2 rounded-full transition-all duration-300 cursor-pointer ${
               !isSignup ? "bg-blue-600 text-white shadow-md" : "text-blue-600"
             }`}
-            disabled={loading}
           >
             Login
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleEmailSubmit} className="grid gap-5">
           {isSignup && (
             <input
@@ -174,7 +175,6 @@ const Login = () => {
               onChange={(e) => setName(e.target.value)}
               className="p-3 border-2 border-blue-200 rounded-lg bg-white"
               required
-              disabled={loading}
             />
           )}
           <input
@@ -184,12 +184,10 @@ const Login = () => {
             onChange={(e) => setEmail(e.target.value)}
             className="p-3 border-2 border-blue-200 rounded-lg bg-white"
             required
-            disabled={loading}
           />
           <button
             type="submit"
-            className="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50"
-            disabled={loading}
+            className="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 active:bg-blue-800 cursor-pointer"
           >
             {isSignup ? "Send Sign-Up Link" : "Send Login Link"}
           </button>
@@ -197,8 +195,7 @@ const Login = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-lg border border-blue-300 hover:bg-blue-100 disabled:opacity-50"
-            disabled={loading}
+            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-lg border border-blue-300 hover:bg-blue-100 cursor-pointer"
           >
             <FcGoogle size={25} /> Continue with Google
           </button>
@@ -208,4 +205,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Auth;

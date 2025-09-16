@@ -13,10 +13,6 @@ import { getDoc, setDoc, doc } from "firebase/firestore";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
 
-const actionCodeSettings = {
-  url: window.location.origin + "/auth",
-  handleCodeInApp: true,
-};
 
 const googleProvider = new GoogleAuthProvider();
 

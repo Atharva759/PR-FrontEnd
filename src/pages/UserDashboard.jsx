@@ -69,7 +69,7 @@ return (
 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 m-6">
       
-      <div className="border-2 rounded-lg bg-blue-50 p-4 w-max h-max text-center shadow-md">
+      <div className="border-2 rounded-lg bg-blue-50 p-4 w-full sm:w-auto h-max text-center shadow-md">
         <h3 className="font-semibold text-lg text-blue-700">Door Lock</h3>
         {isLock === null ? (
           <p className="text-gray-600 mt-2">Loading status...</p>

@@ -14,7 +14,7 @@ import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
 
 const actionCodeSettings = {
-  url: window.location.origin + "/auth", // stays on user auth route
+  url: window.location.origin + "/auth", 
   handleCodeInApp: true,
 };
 
@@ -26,7 +26,7 @@ const Auth = () => {
   const [name, setName] = useState("");
   const navigate = useNavigate();
 
-  // Redirect employees to dashboard
+
   const redirectToDashboard = () => {
     navigate("/dashboard");
   };
@@ -54,7 +54,7 @@ const Auth = () => {
             await setDoc(userRef, {
               name: signupName,
               email: user.email,
-              role: "employee", // default role for users
+              role: "employee", 
               provider: "email",
             });
             toast.success(`Welcome, ${signupName}! Your account has been created.`);
@@ -123,7 +123,7 @@ const Auth = () => {
         await setDoc(userRef, {
           name: user.displayName || "Google User",
           email: user.email,
-          role: "employee", // default role
+          role: "employee", 
           provider: "google",
         });
       }
@@ -137,7 +137,7 @@ const Auth = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-600">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">
-        {/* Toggle between Sign Up / Login */}
+        
         <div className="flex mb-8 gap-4 bg-blue-200 rounded-full p-1">
           <button
             onClick={() => setIsSignup(true)}
@@ -157,7 +157,7 @@ const Auth = () => {
           </button>
         </div>
 
-        {/* Auth Form */}
+        
         <form onSubmit={handleEmailSubmit} className="grid gap-5">
           {isSignup && (
             <input
@@ -193,7 +193,7 @@ const Auth = () => {
           </button>
         </form>
 
-        {/* Link to Admin Login */}
+        
         <p className="text-center mt-6 text-sm">
           Are you an admin?{" "}
           <a

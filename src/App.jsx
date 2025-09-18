@@ -26,8 +26,6 @@ function App() {
               </PrivateRoute>
             }
           />
-
-          {/* Admin login + dashboard */}
           <Route path="/adminlogin" element={<AdminLogin />} />
           <Route
             path="/admindashboard"

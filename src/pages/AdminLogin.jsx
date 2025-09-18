@@ -24,7 +24,6 @@ const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
 
-  // 🔑 redirect admins only
   const redirectIfAdmin = async (user) => {
     const userDoc = await getDoc(doc(db, "users", user.uid));
     if (userDoc.exists()) {

@@ -14,7 +14,7 @@ import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
 
 const actionCodeSettings = {
-  url: window.location.origin + "/auth",
+  url: window.location.origin + "/auth", // stays on user auth route
   handleCodeInApp: true,
 };
 
@@ -25,6 +25,11 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const navigate = useNavigate();
+
+  // Redirect employees to dashboard
+  const redirectToDashboard = () => {
+    navigate("/dashboard");
+  };
 
   useEffect(() => {
     const handleEmailLinkSignIn = async () => {
@@ -45,18 +50,20 @@ const Auth = () => {
           const userDoc = await getDoc(userRef);
 
           if (!userDoc.exists()) {
-            const signupName = "User"
+            const signupName = name || "User";
             await setDoc(userRef, {
               name: signupName,
               email: user.email,
-              role: "employee",
+              role: "employee", // default role for users
               provider: "email",
             });
             toast.success(`Welcome, ${signupName}! Your account has been created.`);
           } else {
-            toast.success(`Welcome back, ${userDoc.data().name || user.email}!`);
+            const userData = userDoc.data();
+            toast.success(`Welcome back, ${userData.name || user.email}!`);
           }
-          navigate("/dashboard");
+
+          redirectToDashboard();
         } catch (error) {
           console.error("Email sign-in error:", error);
         }
@@ -68,14 +75,15 @@ const Auth = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) navigate("/dashboard");
+        if (userDoc.exists()) {
+          redirectToDashboard();
+        }
       }
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     if (isSignup && !name.trim()) {
@@ -91,7 +99,7 @@ const Auth = () => {
           error: (err) => `Failed to send link: ${err.message}`,
         }
       );
-      window.localStorage.setItem("email",emailForSignIn);
+      window.localStorage.setItem("email", email);
       setEmail("");
       setName("");
     } catch (error) {
@@ -99,7 +107,6 @@ const Auth = () => {
     }
   };
 
-  
   const handleGoogleLogin = async () => {
     try {
       const result = await toast.promise(signInWithPopup(auth, googleProvider), {
@@ -116,12 +123,12 @@ const Auth = () => {
         await setDoc(userRef, {
           name: user.displayName || "Google User",
           email: user.email,
-          role: "employee",
+          role: "employee", // default role
           provider: "google",
         });
       }
 
-      navigate("/dashboard");
+      redirectToDashboard();
     } catch (error) {
       console.error("Google login error:", error);
     }
@@ -130,7 +137,7 @@ const Auth = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-600">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">
-        
+        {/* Toggle between Sign Up / Login */}
         <div className="flex mb-8 gap-4 bg-blue-200 rounded-full p-1">
           <button
             onClick={() => setIsSignup(true)}
@@ -150,6 +157,7 @@ const Auth = () => {
           </button>
         </div>
 
+        {/* Auth Form */}
         <form onSubmit={handleEmailSubmit} className="grid gap-5">
           {isSignup && (
             <input
@@ -184,6 +192,17 @@ const Auth = () => {
             <FcGoogle size={25} /> Continue with Google
           </button>
         </form>
+
+        {/* Link to Admin Login */}
+        <p className="text-center mt-6 text-sm">
+          Are you an admin?{" "}
+          <a
+            href="/adminlogin"
+            className="text-blue-600 font-semibold hover:underline"
+          >
+            Go to Admin Login
+          </a>
+        </p>
       </div>
     </div>
   );

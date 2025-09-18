@@ -30,10 +30,10 @@ const Home = () => {
             Go to Login
           </Link>
           <Link
-            to="/admin"
+            to="/adminlogin"
             className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-blue-600 text-white text-base sm:text-lg font-semibold rounded-full shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 text-center"
           >
-            Go to Admin Dashboard
+            Admin Login
           </Link>
         </div>
       </div>

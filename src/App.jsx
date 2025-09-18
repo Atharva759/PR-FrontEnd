@@ -6,15 +6,18 @@ import Auth from "./pages/Auth";
 import UserDashboard from "./pages/UserDashboard";
 import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
+import AdminLogin from "./pages/AdminLogin";
+import ManageUsers from "./components/ManageUsers";
 
 function App() {
   return (
     <>
       <BrowserRouter>
-          <Toaster/>
+        <Toaster />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
+
           <Route
             path="/dashboard"
             element={
@@ -23,7 +26,25 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="/admin" element={<AdminDashboard />} />
+
+          {/* Admin login + dashboard */}
+          <Route path="/adminlogin" element={<AdminLogin />} />
+          <Route
+            path="/admindashboard"
+            element={
+              <PrivateRoute>
+                <AdminDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/manage-users"
+            element={
+              <PrivateRoute>
+                <ManageUsers />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </>

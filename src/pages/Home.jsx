@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
+import bg from "../assets/bgwarehouse.png";
 const Home = () => {
   return (
     <div className="relative h-screen w-full">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: "url('/bgwarehouse.png')",
+          backgroundImage: `url(${bg})`,
         }}
       ></div>
 

@@ -10,7 +10,6 @@ import { FaLock,FaLockOpen } from "react-icons/fa6";
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-
   const [isLock, setIsLock] = useState(true);
 
   useEffect(() => {

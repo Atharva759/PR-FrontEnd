@@ -15,7 +15,6 @@ const UserDashboard = () => {
 
   useEffect(() => {
     const lockRef = ref(database, "isLock");
-
     const unsubscribe = onValue(lockRef, (snapshot) => {
       const val = snapshot.val();
       if (typeof val === "boolean") {
@@ -24,14 +23,14 @@ const UserDashboard = () => {
         console.warn("Expected boolean, got:", val);
       }
     });
-
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
   const toggleLock = () => {
     const newState = !isLock;
     set(ref(database, "isLock"), newState);
     toast.success('Door will autoclose in 5s.')
+    
     setTimeout(()=>{
       set(ref(database, "isLock"), isLock);
       toast.error('Door Closed.')

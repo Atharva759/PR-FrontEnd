@@ -25,13 +25,13 @@ const Home = () => {
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 w-full sm:w-auto">
           <Link
             to="/auth"
-            className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-blue-600 text-white text-base sm:text-lg font-semibold rounded-md shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 text-center"
+            className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-blue-600 text-white text-base sm:text-lg font-semibold rounded-full shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 text-center"
           >
             Go to Login
           </Link>
           <Link
             to="/admin"
-            className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-blue-600 text-white text-base sm:text-lg font-semibold rounded-md shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 text-center"
+            className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-blue-600 text-white text-base sm:text-lg font-semibold rounded-full shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 text-center"
           >
             Go to Admin Dashboard
           </Link>

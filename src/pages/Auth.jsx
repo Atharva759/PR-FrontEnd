@@ -29,10 +29,7 @@ const Auth = () => {
   useEffect(() => {
     const handleEmailLinkSignIn = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
-        let emailForSignIn =
-          window.localStorage.getItem("emailForSignIn") ||
-          window.prompt("Please provide your email:");
-
+        const emailForSignIn = window.localStorage.getItem("email");
         try {
           const result = await toast.promise(
             signInWithEmailLink(auth, emailForSignIn, window.location.href),
@@ -43,28 +40,22 @@ const Auth = () => {
             }
           );
 
-          localStorage.removeItem("emailForSignIn");
-
           const user = result.user;
           const userRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userRef);
 
           if (!userDoc.exists()) {
-            const signupName = localStorage.getItem("signupName") || "User";
-
+            const signupName = "User"
             await setDoc(userRef, {
               name: signupName,
               email: user.email,
               role: "employee",
               provider: "email",
             });
-
-            localStorage.removeItem("signupName");
             toast.success(`Welcome, ${signupName}! Your account has been created.`);
           } else {
             toast.success(`Welcome back, ${userDoc.data().name || user.email}!`);
           }
-
           navigate("/dashboard");
         } catch (error) {
           console.error("Email sign-in error:", error);
@@ -87,27 +78,20 @@ const Auth = () => {
   
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
-
     if (isSignup && !name.trim()) {
       toast.error("Please enter your name.");
       return;
     }
-
     try {
-      if (isSignup) {
-        localStorage.setItem("signupName", name.trim());
-      }
-
       await toast.promise(
         sendSignInLinkToEmail(auth, email, actionCodeSettings),
         {
-          loading: "Sending magic link...",
+          loading: "Sending Email link...",
           success: `Check your inbox! A sign-in link was sent to ${email}.`,
           error: (err) => `Failed to send link: ${err.message}`,
         }
       );
-
-      localStorage.setItem("emailForSignIn", email);
+      window.localStorage.setItem("email",emailForSignIn);
       setEmail("");
       setName("");
     } catch (error) {
@@ -144,7 +128,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-900">
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-600">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">
         
         <div className="flex mb-8 gap-4 bg-blue-200 rounded-full p-1">
@@ -187,7 +171,7 @@ const Auth = () => {
           />
           <button
             type="submit"
-            className="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 active:bg-blue-800 cursor-pointer"
+            className="p-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 active:bg-blue-800 cursor-pointer"
           >
             {isSignup ? "Send Sign-Up Link" : "Send Login Link"}
           </button>
@@ -195,7 +179,7 @@ const Auth = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-lg border border-blue-300 hover:bg-blue-100 cursor-pointer"
+            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-full border border-blue-300 hover:bg-blue-100 cursor-pointer"
           >
             <FcGoogle size={25} /> Continue with Google
           </button>

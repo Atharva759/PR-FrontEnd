@@ -9,12 +9,12 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
-import { getDoc, setDoc, doc } from "firebase/firestore";
+import { getDoc, setDoc, doc, runTransaction } from "firebase/firestore";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
 
 const actionCodeSettings = {
-  url: window.location.origin + "/auth", 
+  url: window.location.origin + "/auth",
   handleCodeInApp: true,
 };
 
@@ -26,11 +26,44 @@ const Auth = () => {
   const [name, setName] = useState("");
   const navigate = useNavigate();
 
-
   const redirectToDashboard = () => {
     navigate("/dashboard");
   };
 
+  
+  const createUserWithUniqueEmail = async (user, displayName, provider = "email") => {
+    const emailDocRef = doc(db, "emails", user.email); 
+    const userDocRef = doc(db, "users", user.uid);
+
+    await runTransaction(db, async (transaction) => {
+      const emailDoc = await transaction.get(emailDocRef);
+      const userDoc = await transaction.get(userDocRef);
+
+     
+      if (!emailDoc.exists()) {
+        transaction.set(emailDocRef, { uid: user.uid });
+      }
+
+      if (!userDoc.exists()) {
+        
+        transaction.set(userDocRef, {
+          name: displayName || user.displayName || "User",
+          email: user.email,
+          role: "employee", 
+          provider: provider,
+          createdAt: new Date(),
+        });
+      } else {
+        
+        const existingData = userDoc.data();
+        if (!existingData.provider) {
+          transaction.update(userDocRef, { provider });
+        }
+      }
+    });
+  };
+
+  
   useEffect(() => {
     const handleEmailLinkSignIn = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
@@ -46,21 +79,12 @@ const Auth = () => {
           );
 
           const user = result.user;
-          const userRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userRef);
+          const signupName = name || "User";
 
-          if (!userDoc.exists()) {
-            const signupName = name || "User";
-            await setDoc(userRef, {
-              name: signupName,
-              email: user.email,
-              role: "employee", 
-              provider: "email",
-            });
-            toast.success(`Welcome, ${signupName}! Your account has been created.`);
-          } else {
-            const userData = userDoc.data();
-            toast.success(`Welcome back, ${userData.name || user.email}!`);
+          try {
+            await createUserWithUniqueEmail(user, signupName, "email");
+          } catch (error) {
+            console.log("Duplicate email detected:", error.message);
           }
 
           redirectToDashboard();
@@ -82,8 +106,9 @@ const Auth = () => {
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, name]);
 
+  
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     if (isSignup && !name.trim()) {
@@ -107,6 +132,7 @@ const Auth = () => {
     }
   };
 
+  
   const handleGoogleLogin = async () => {
     try {
       const result = await toast.promise(signInWithPopup(auth, googleProvider), {
@@ -116,16 +142,11 @@ const Auth = () => {
       });
 
       const user = result.user;
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
 
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
-          name: user.displayName || "Google User",
-          email: user.email,
-          role: "employee", 
-          provider: "google",
-        });
+      try {
+        await createUserWithUniqueEmail(user, user.displayName || "Google User", "google");
+      } catch (error) {
+        console.log("Duplicate email detected:", error.message);
       }
 
       redirectToDashboard();
@@ -134,10 +155,10 @@ const Auth = () => {
     }
   };
 
+  
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-600">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">
-        
         <div className="flex mb-8 gap-4 bg-blue-200 rounded-full p-1">
           <button
             onClick={() => setIsSignup(true)}
@@ -157,7 +178,6 @@ const Auth = () => {
           </button>
         </div>
 
-        
         <form onSubmit={handleEmailSubmit} className="grid gap-5">
           {isSignup && (
             <input
@@ -193,7 +213,6 @@ const Auth = () => {
           </button>
         </form>
 
-        
         <p className="text-center mt-6 text-sm">
           Are you an admin?{" "}
           <a

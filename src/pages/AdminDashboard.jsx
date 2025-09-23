@@ -13,14 +13,16 @@ import {
 } from "react-icons/md";
 import { Link } from "react-router-dom";
 import ManageUsers from "../components/ManageUsers";
+import FirebaseAnalytics from "../components/FirebaseAnalytics";
+import Lock from "../components/Lock";
+import Monitoring from "../components/Monitoring";
 
 const AdminDashboard = () => {
-  const [currentView, setCurrentView] = useState(null);
+  const [currentView, setCurrentView] = useState("analytics");
 
   const navs = [
     { name: "Analytics", icon: <MdAnalytics size={20} />, view: "analytics" },
     { name: "Manage Users", icon: <MdPeople size={20} />, view: "manage" },
-    { name: "Add Users", icon: <MdPersonAdd size={20} />, view: "add" },
     { name: "Admin Actions", icon: <MdAdminPanelSettings size={20} />, view: "adminActions" },
     { name: "Logs", icon: <MdAssignment size={20} />, view: "logs" },
     { name: "Live Feed", icon: <MdLiveTv size={20} />, view: "liveFeed" },
@@ -70,36 +72,25 @@ const AdminDashboard = () => {
 
         
         <div className="bg-white rounded-2xl shadow-lg p-6 min-h-[500px]">
+          {currentView === "analytics" && <FirebaseAnalytics/>}
           {currentView === "manage" && <ManageUsers />}
-          {currentView === "add" && (
-            <p className="text-gray-500 text-lg">Add users content goes here...</p>
-          )}
-          {currentView === "analytics" && (
-            <p className="text-gray-500 text-lg">Analytics content goes here...</p>
-          )}
-          {currentView === "adminActions" && (
-            <p className="text-gray-500 text-lg">Admin actions content goes here...</p>
-          )}
+          {currentView === "adminActions" && <Lock/>}
+
+
           {currentView === "logs" && (
             <p className="text-gray-500 text-lg">Logs content goes here...</p>
           )}
           {currentView === "liveFeed" && (
             <p className="text-gray-500 text-lg">Live feed content goes here...</p>
           )}
-          {currentView === "monitoring" && (
-            <p className="text-gray-500 text-lg">System monitoring content goes here...</p>
-          )}
+          {currentView === "monitoring" &&  <Monitoring frontendUrl={import.meta.env.VITE_FRONTEND_URL}/>}
           {currentView === "config" && (
             <p className="text-gray-500 text-lg">Configuration content goes here...</p>
           )}
           {currentView === "help" && (
             <p className="text-gray-500 text-lg">Help & support content goes here...</p>
           )}
-          {!currentView && (
-            <p className="text-gray-400 text-lg">
-              Select an action from the sidebar
-            </p>
-          )}
+          
         </div>
       </div>
     </div>

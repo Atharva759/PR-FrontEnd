@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { collection, addDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../../firebase";
 
 const ManageUsers = () => {
@@ -98,7 +104,9 @@ const ManageUsers = () => {
                         onClick={() => changeRole(u.id, r)}
                         className={`px-3 py-1 rounded-lg cursor-pointer ${
                           u.role === r
-                            ? "bg-blue-600 text-white"
+                            ? r === "admin"
+                              ? "bg-red-600 text-white"
+                              : "bg-blue-600 text-white"
                             : "bg-gray-200 hover:bg-gray-300"
                         }`}
                       >

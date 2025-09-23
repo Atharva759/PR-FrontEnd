@@ -2,7 +2,8 @@ import { initializeApp } from "firebase/app";
 import { getAuth,GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import {getDatabase, ref,set, onValue} from "firebase/database";
-
+import {getAnalytics,logEvent} from "firebase/analytics";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,6 +21,11 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 const database = getDatabase(app);
+const analytics = getAnalytics(app);
+const storage = getStorage(app);
 
-export { auth, db,googleProvider,database,ref,set,onValue };
+export { auth, db,googleProvider,database,ref,set,onValue,storage };
+
+logEvent(analytics, 'sign_up', { method: 'google' });
+logEvent(analytics, 'login', { method: 'email_link' });
 

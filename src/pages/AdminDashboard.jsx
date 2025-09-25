@@ -16,6 +16,7 @@ import ManageUsers from "../components/ManageUsers";
 import FirebaseAnalytics from "../components/FirebaseAnalytics";
 import Lock from "../components/Lock";
 import Monitoring from "../components/Monitoring";
+import Logs from "../components/Logs";
 
 const AdminDashboard = () => {
   const [currentView, setCurrentView] = useState("analytics");
@@ -77,9 +78,7 @@ const AdminDashboard = () => {
           {currentView === "adminActions" && <Lock/>}
 
 
-          {currentView === "logs" && (
-            <p className="text-gray-500 text-lg">Logs content goes here...</p>
-          )}
+          {currentView === "logs" && <Logs/>}
           {currentView === "liveFeed" && (
             <p className="text-gray-500 text-lg">Live feed content goes here...</p>
           )}

@@ -86,14 +86,13 @@ const Auth = () => {
           } catch (error) {
             console.log("Duplicate email detected:", error.message);
           }
-
           redirectToDashboard();
         } catch (error) {
           console.error("Email sign-in error:", error);
         }
       }
     };
-
+  
     handleEmailLinkSignIn();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

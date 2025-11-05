@@ -17,6 +17,7 @@ import FirebaseAnalytics from "../components/FirebaseAnalytics";
 import Lock from "../components/Lock";
 import Monitoring from "../components/Monitoring";
 import Logs from "../components/Logs";
+import ESP32Setup from "../components/ESP32Setup";
 
 const AdminDashboard = () => {
   const [currentView, setCurrentView] = useState("analytics");
@@ -25,10 +26,10 @@ const AdminDashboard = () => {
     { name: "Analytics", icon: <MdAnalytics size={20} />, view: "analytics" },
     { name: "Manage Users", icon: <MdPeople size={20} />, view: "manage" },
     { name: "Admin Actions", icon: <MdAdminPanelSettings size={20} />, view: "adminActions" },
+    { name: "ESP32 Configuration", icon: <MdSettings size={20} />, view: "config" },
     { name: "Logs", icon: <MdAssignment size={20} />, view: "logs" },
     { name: "Live Feed", icon: <MdLiveTv size={20} />, view: "liveFeed" },
     { name: "System Monitoring", icon: <MdMonitor size={20} />, view: "monitoring" },
-    { name: "Configuration", icon: <MdSettings size={20} />, view: "config" },
     { name: "Help Support", icon: <MdHelpOutline size={20} />, view: "help" },
   ];
 
@@ -75,6 +76,7 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-2xl shadow-lg p-6 min-h-[500px]">
           {currentView === "analytics" && <FirebaseAnalytics/>}
           {currentView === "manage" && <ManageUsers />}
+          {currentView === "config" &&  <ESP32Setup/> }
           {currentView === "adminActions" && <Lock/>}
 
 
@@ -83,9 +85,6 @@ const AdminDashboard = () => {
             <p className="text-gray-500 text-lg">Live feed content goes here...</p>
           )}
           {currentView === "monitoring" &&  <Monitoring frontendUrl={import.meta.env.VITE_FRONTEND_URL}/>}
-          {currentView === "config" && (
-            <p className="text-gray-500 text-lg">Configuration content goes here...</p>
-          )}
           {currentView === "help" && (
             <p className="text-gray-500 text-lg">Help & support content goes here...</p>
           )}

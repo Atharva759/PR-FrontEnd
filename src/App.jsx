@@ -8,6 +8,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
 import AdminLogin from "./pages/AdminLogin";
 import ManageUsers from "./components/ManageUsers";
+import SensorDashboard from "./components/SensorDashboard";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route path="/dashboard/:deviceId" element={<SensorDashboard />} />
         </Routes>
       </BrowserRouter>
     </>

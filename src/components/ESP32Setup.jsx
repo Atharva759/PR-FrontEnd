@@ -11,6 +11,7 @@ import {
   Settings,
   Save,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://pr-test-quit.onrender.com";
 const WS_URL = "wss://pr-test-quit.onrender.com/ws/devices";
@@ -21,6 +22,7 @@ const ESP32Setup = () => {
   const [wsStatus, setWsStatus] = useState("disconnected");
   const [deviceConfig, setDeviceConfig] = useState({});
   const [savingConfig, setSavingConfig] = useState(false);
+  const navigate = useNavigate();
 
   // --- WebSocket for device updates ---
   useEffect(() => {
@@ -460,6 +462,14 @@ const handleSaveConfig = async () => {
                         </>
                       )}
                     </button>
+                    {/* Sensor Dashboard Button */}
+                        <button
+                          onClick={() => navigate(`/dashboard/${selectedDevice.deviceId}`, { state: { device: selectedDevice } })}
+                          className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Zap className="w-5 h-5" />
+                          View Dashboard
+                        </button>
                   </div>
                 </div>
               </>

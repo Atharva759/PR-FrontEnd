@@ -15,19 +15,26 @@ import {
   Activity,
 } from "lucide-react";
 
-// ✅ Environment Variables (from .env)
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const Monitoring = () => {
   const [userCount, setUserCount] = useState(0);
   const [realtimeConnections, setRealtimeConnections] = useState(0);
-  const [storageUsage, setStorageUsage] = useState("-");
-  const [frontendStatus, setFrontendStatus] = useState("Checking...");
-  const [backendHealth, setBackendHealth] = useState("Checking...");
+  const [storageUsage, setStorageUsage] = useState("0 MB");
+  const [storageStatus, setStorageStatus] = useState("Checking");
+  const [frontendStatus, setFrontendStatus] = useState("Checking");
+  const [backendHealth, setBackendHealth] = useState("Checking");
   const [connectedDevices, setConnectedDevices] = useState(0);
-  const [webClients, setWebClients] = useState(0);
-  const [lastHealthCheck, setLastHealthCheck] = useState(null);
+  const [timestamps, setTimestamps] = useState({});
+
+  // 🔹 Helper: update timestamps
+  const updateTimestamp = (key) => {
+    setTimestamps((prev) => ({
+      ...prev,
+      [key]: new Date().toLocaleTimeString(),
+    }));
+  };
 
   // 🔹 Firestore Users
   useEffect(() => {
@@ -35,9 +42,9 @@ const Monitoring = () => {
       try {
         const usersSnap = await getDocs(collection(db, "users"));
         setUserCount(usersSnap.size);
+        updateTimestamp("users");
       } catch (err) {
-        console.error("Error fetching users:", err);
-        toast.error("Failed to fetch users count");
+        toast.error("Failed to fetch users");
       }
     };
     fetchUsers();
@@ -48,26 +55,28 @@ const Monitoring = () => {
     const connectionsRef = dbRef(database, ".info/connected");
     const unsubscribe = onValue(connectionsRef, (snapshot) => {
       setRealtimeConnections(snapshot.val() ? 1 : 0);
+      updateTimestamp("realtime");
     });
     return () => unsubscribe();
   }, []);
 
-  // 🔹 Frontend Status Check
+  // 🔹 Frontend Status
   useEffect(() => {
     const checkFrontend = async () => {
       try {
         const res = await fetch(FRONTEND_URL, { method: "HEAD" });
-        setFrontendStatus(res.ok ? "Up" : "Down");
+        setFrontendStatus(res.ok ? "Healthy" : "Unhealthy");
       } catch {
-        setFrontendStatus("Down");
+        setFrontendStatus("Unhealthy");
       }
+      updateTimestamp("frontend");
     };
     checkFrontend();
     const interval = setInterval(checkFrontend, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Firebase Storage Usage
+  // 🔹 Firebase Storage
   useEffect(() => {
     const fetchStorageUsage = async () => {
       try {
@@ -80,9 +89,12 @@ const Monitoring = () => {
         }
         const sizeMB = (totalBytes / (1024 * 1024)).toFixed(2);
         setStorageUsage(`${sizeMB} MB`);
+        setStorageStatus("Healthy");
       } catch {
-        setStorageUsage("Not available");
+        setStorageUsage("-");
+        setStorageStatus("Disconnected");
       }
+      updateTimestamp("storage");
     };
     fetchStorageUsage();
   }, []);
@@ -96,30 +108,29 @@ const Monitoring = () => {
         const data = await res.json();
         setBackendHealth(data.status === "ok" ? "Healthy" : "Unhealthy");
         setConnectedDevices(data.connectedDevices || 0);
-        setWebClients(data.webClients || 0);
-        setLastHealthCheck(new Date(data.timestamp).toLocaleTimeString());
       } catch {
-        setBackendHealth("Unreachable");
+        setBackendHealth("Disconnected");
       }
+      updateTimestamp("backend");
     };
     fetchBackendHealth();
     const interval = setInterval(fetchBackendHealth, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // 🔸 Helper for colored status badge
+  // 🔹 Status Badge
   const StatusBadge = ({ status }) => {
     const colorMap = {
-      Up: "bg-green-100 text-green-700",
       Healthy: "bg-green-100 text-green-700",
-      Down: "bg-red-100 text-red-700",
       Unhealthy: "bg-yellow-100 text-yellow-700",
-      Unreachable: "bg-red-100 text-red-700",
+      Disconnected: "bg-red-100 text-red-700",
       Checking: "bg-gray-100 text-gray-700",
     };
     return (
       <span
-        className={`px-3 py-1 rounded-full text-sm font-medium ${colorMap[status] || "bg-gray-100 text-gray-700"}`}
+        className={`px-3 py-1 rounded-full text-sm font-medium ${
+          colorMap[status] || "bg-gray-100 text-gray-700"
+        }`}
       >
         {status}
       </span>
@@ -134,55 +145,48 @@ const Monitoring = () => {
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Firestore Users */}
         <Card
           title="Firestore Users"
           icon={<Users className="w-6 h-6 text-indigo-600" />}
           value={userCount}
+          footer={`Last Updated: ${timestamps.users || "..."}`}
         />
-
-        {/* Realtime DB */}
         <Card
           title="Realtime DB Connection"
           icon={<Database className="w-6 h-6 text-blue-600" />}
           value={realtimeConnections}
+          footer={`Last Updated: ${timestamps.realtime || "..."}`}
         />
-
-        {/* Storage Usage */}
         <Card
           title="Storage Usage"
           icon={<HardDrive className="w-6 h-6 text-amber-600" />}
-          value={storageUsage}
+          value={
+            <div className="flex flex-col items-center">
+              <span className="text-2xl font-semibold">{storageUsage}</span>
+              <StatusBadge status={storageStatus} />
+            </div>
+          }
+          footer={`Last Updated: ${timestamps.storage || "..."}`}
         />
-
-        {/* Frontend Status */}
         <Card
           title="Frontend Status"
           icon={<Globe className="w-6 h-6 text-green-600" />}
           value={<StatusBadge status={frontendStatus} />}
+          footer={`Last Updated: ${timestamps.frontend || "..."}`}
         />
-
-        {/* Backend Health */}
         <Card
           title="Backend Health"
           icon={<Server className="w-6 h-6 text-rose-600" />}
           value={<StatusBadge status={backendHealth} />}
-          footer={lastHealthCheck && `Last Checked: ${lastHealthCheck}`}
+          footer={`Last Updated: ${timestamps.backend || "..."}`}
         />
-
-        {/* Connected Devices */}
         <Card
           title="Connected Devices"
           icon={<Wifi className="w-6 h-6 text-cyan-600" />}
           value={connectedDevices}
+          footer={`Last Updated: ${timestamps.backend || "..."}`}
         />
-
-        {/* Web Clients */}
-        <Card
-          title="Web Clients"
-          icon={<Cloud className="w-6 h-6 text-purple-600" />}
-          value={webClients}
-        />
+        
       </div>
     </div>
   );
@@ -190,13 +194,15 @@ const Monitoring = () => {
 
 // 🔹 Reusable Card Component
 const Card = ({ title, icon, value, footer }) => (
-  <div className="bg-white p-6 shadow-md rounded-xl text-center">
-    <div className="flex justify-center items-center gap-2">
-      {icon}
-      <h3 className="font-semibold text-lg">{title}</h3>
+  <div className="bg-white p-6 shadow-md rounded-xl flex flex-col justify-between text-center">
+    <div>
+      <div className="flex justify-center items-center gap-2">
+        {icon}
+        <h3 className="font-semibold text-lg">{title}</h3>
+      </div>
+      <div className="mt-3 text-2xl">{value}</div>
     </div>
-    <p className="text-3xl font-bold mt-3">{value}</p>
-    {footer && <p className="text-sm text-gray-500 mt-2">{footer}</p>}
+    <p className="text-sm text-gray-500 mt-4">{footer}</p>
   </div>
 );
 

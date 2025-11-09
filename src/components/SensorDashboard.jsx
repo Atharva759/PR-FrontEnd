@@ -22,7 +22,6 @@ const SensorDashboard = () => {
 
   const [sensorData, setSensorData] = useState({});
   const [wsStatus, setWsStatus] = useState("connecting");
-
   const dataRef = useRef({});
 
   useEffect(() => {
@@ -32,6 +31,7 @@ const SensorDashboard = () => {
     }
 
     const ws = new WebSocket(WS_URL);
+
     ws.onopen = () => {
       console.log("WebSocket connected to backend");
       setWsStatus("connected");
@@ -40,44 +40,40 @@ const SensorDashboard = () => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === "heartbeat" && data.deviceId === deviceId) {
+        if (
+          data.type === "heartbeat" &&
+          data.deviceId.toLowerCase() === deviceId.toLowerCase()
+        ) {
+          console.log("Received heartbeat:", data);
           const timeLabel = new Date().toLocaleTimeString();
 
-          // Iterate over each sensor and extract numerical fields
           data.sensors.forEach((sensor) => {
             if (sensor.status !== "active") return;
 
             const sensorId = sensor.id;
-            const sensorFields = sensor.data;
+            const fields = sensor.data;
 
-            // Keep only numeric values
+            // Convert numeric-like strings and keep numbers only
             const numericFields = Object.fromEntries(
-              Object.entries(sensorFields).filter(
-                ([_, value]) => typeof value === "number"
-              )
+              Object.entries(fields)
+                .filter(([_, v]) => !isNaN(v))
+                .map(([k, v]) => [k, Number(v)])
             );
 
-            // Initialize the array if not present
             if (!dataRef.current[sensorId]) dataRef.current[sensorId] = [];
-
-            // Add new entry with timestamp
-            dataRef.current[sensorId].push({
-              time: timeLabel,
-              ...numericFields,
-            });
-
-            // Keep last 50 entries
+            dataRef.current[sensorId].push({ time: timeLabel, ...numericFields });
             dataRef.current[sensorId] = dataRef.current[sensorId].slice(-50);
           });
 
-          // Trigger re-render
+          console.log("Parsed sensors:", Object.keys(dataRef.current));
           setSensorData({ ...dataRef.current });
         }
       } catch (err) {
-        console.error("Error parsing WS message:", err);
+        console.error("Error parsing message:", err);
       }
     };
 
+    ws.onerror = (err) => console.error("WebSocket error:", err);
     ws.onclose = () => {
       console.log("WebSocket closed");
       setWsStatus("disconnected");
@@ -100,11 +96,9 @@ const SensorDashboard = () => {
             />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {device?.name || "ESP32 Device Dashboard"}
+                {device?.name || "ESP32 Dashboard"}
               </h1>
-              <p className="text-gray-600 text-sm">
-                Device ID: {deviceId}
-              </p>
+              <p className="text-gray-600 text-sm">Device ID: {deviceId}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -120,7 +114,7 @@ const SensorDashboard = () => {
         {/* Charts */}
         {sensors.length === 0 ? (
           <div className="text-center py-10 text-gray-500 bg-white rounded-lg shadow-sm">
-            <p>No active sensor data yet.</p>
+            <p>No sensor data yet — waiting for heartbeat...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -129,7 +123,6 @@ const SensorDashboard = () => {
                 <h2 className="text-lg font-semibold mb-3 capitalize">
                   {sensorId}
                 </h2>
-
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={sensorData[sensorId]}>
@@ -140,12 +133,16 @@ const SensorDashboard = () => {
                       <Legend />
                       {Object.keys(sensorData[sensorId][0] || {})
                         .filter((k) => k !== "time")
-                        .map((field) => (
+                        .map((field, idx) => (
                           <Line
                             key={field}
                             type="monotone"
                             dataKey={field}
-                            stroke="#2563eb"
+                            stroke={
+                              ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed"][
+                                idx % 5
+                              ]
+                            }
                             dot={false}
                             isAnimationActive={false}
                           />

@@ -22,31 +22,35 @@ const SensorDashboard = () => {
 
   const [sensorData, setSensorData] = useState({});
   const [wsStatus, setWsStatus] = useState("connecting");
-  const dataRef = useRef({});
+  const wsRef = useRef(null);
+  const dataRef = useRef({}); // stores persistent sensor data
+  const reconnectTimer = useRef(null);
 
-  useEffect(() => {
-    if (!device) {
-      navigate("/");
-      return;
-    }
+  // Function to initialize WebSocket
+  const connectWebSocket = () => {
+    if (wsRef.current) wsRef.current.close();
 
     const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("WebSocket connected to backend");
+      console.log("✅ WebSocket connected");
       setWsStatus("connected");
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+
         if (
           data.type === "heartbeat" &&
           data.deviceId.toLowerCase() === deviceId.toLowerCase()
         ) {
-          const now = new Date();
-          const timeLabel = now.toLocaleTimeString("en-US", {
-            hour12: false,
+          const timestamp = new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
@@ -54,24 +58,23 @@ const SensorDashboard = () => {
 
           data.sensors.forEach((sensor) => {
             if (sensor.status !== "active") return;
-
             const sensorId = sensor.id;
+            const fields = sensor.data;
+
             const numericFields = Object.fromEntries(
-              Object.entries(sensor.data || {})
-                .filter(([_, v]) => typeof v === "number" && !isNaN(v))
+              Object.entries(fields)
+                .filter(([_, v]) => !isNaN(v))
+                .map(([k, v]) => [k, Number(v)])
             );
 
+            const newEntry = { time: timestamp, ...numericFields };
             if (!dataRef.current[sensorId]) dataRef.current[sensorId] = [];
+            dataRef.current[sensorId].push(newEntry);
 
-            // Append new data point with timestamp
-            dataRef.current[sensorId].push({
-              timestamp: now.getTime(), // numeric timestamp
-              time: timeLabel, // human-readable label
-              ...numericFields,
-            });
-
-            // Keep only last ~10 minutes (about 120 samples for 5s intervals)
-            dataRef.current[sensorId] = dataRef.current[sensorId].slice(-120);
+            // Keep only last 60 samples (5s × 60 = 5 minutes)
+            if (dataRef.current[sensorId].length > 60) {
+              dataRef.current[sensorId].shift();
+            }
           });
 
           setSensorData({ ...dataRef.current });
@@ -81,14 +84,36 @@ const SensorDashboard = () => {
       }
     };
 
-    ws.onerror = (err) => console.error("WebSocket error:", err);
     ws.onclose = () => {
-      console.log("WebSocket closed");
+      console.log("🔴 WebSocket disconnected");
       setWsStatus("disconnected");
+
+      // Try reconnecting after 5 seconds
+      if (!reconnectTimer.current) {
+        reconnectTimer.current = setTimeout(() => {
+          console.log("♻️ Reconnecting WebSocket...");
+          connectWebSocket();
+        }, 5000);
+      }
     };
 
-    return () => ws.close();
-  }, [deviceId]);
+    ws.onerror = (err) => {
+      console.error("⚠️ WebSocket error:", err);
+      ws.close();
+    };
+  };
+
+  useEffect(() => {
+    if (!device) {
+      navigate("/");
+      return;
+    }
+    connectWebSocket();
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    };
+  }, [deviceId, navigate]);
 
   const sensors = Object.keys(sensorData);
 
@@ -115,7 +140,7 @@ const SensorDashboard = () => {
                 wsStatus === "connected" ? "text-green-500" : "text-red-500"
               }`}
             />
-            <span className="text-sm capitalize">{wsStatus}</span>
+            <span className="text-sm">{wsStatus}</span>
           </div>
         </div>
 
@@ -133,28 +158,14 @@ const SensorDashboard = () => {
                 </h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={sensorData[sensorId]}
-                      margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-                    >
+                    <LineChart data={sensorData[sensorId]}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="time"
-                        interval="preserveStartEnd"
-                        tick={{ fontSize: 10 }}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10 }}
-                        domain={["auto", "auto"]}
-                        allowDecimals
-                      />
-                      <Tooltip
-                        formatter={(value, name) => [value, name]}
-                        labelFormatter={(label) => `Time: ${label}`}
-                      />
+                      <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                      <YAxis />
+                      <Tooltip />
                       <Legend />
                       {Object.keys(sensorData[sensorId][0] || {})
-                        .filter((k) => !["time", "timestamp"].includes(k))
+                        .filter((k) => k !== "time")
                         .map((field, idx) => (
                           <Line
                             key={field}
@@ -162,15 +173,15 @@ const SensorDashboard = () => {
                             dataKey={field}
                             stroke={
                               [
-                                "#2563eb", // blue
-                                "#dc2626", // red
-                                "#16a34a", // green
-                                "#d97706", // amber
-                                "#7c3aed", // violet
+                                "#2563eb",
+                                "#dc2626",
+                                "#16a34a",
+                                "#d97706",
+                                "#7c3aed",
                               ][idx % 5]
                             }
-                            strokeWidth={2}
                             dot={false}
+                            strokeWidth={2}
                             isAnimationActive={false}
                           />
                         ))}

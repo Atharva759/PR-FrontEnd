@@ -44,32 +44,40 @@ const SensorDashboard = () => {
           data.type === "heartbeat" &&
           data.deviceId.toLowerCase() === deviceId.toLowerCase()
         ) {
-          console.log("Received heartbeat:", data);
-          const timeLabel = new Date().toLocaleTimeString();
+          const now = new Date();
+          const timeLabel = now.toLocaleTimeString("en-US", {
+            hour12: false,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
 
           data.sensors.forEach((sensor) => {
             if (sensor.status !== "active") return;
 
             const sensorId = sensor.id;
-            const fields = sensor.data;
-
-            // Convert numeric-like strings and keep numbers only
             const numericFields = Object.fromEntries(
-              Object.entries(fields)
-                .filter(([_, v]) => !isNaN(v))
-                .map(([k, v]) => [k, Number(v)])
+              Object.entries(sensor.data || {})
+                .filter(([_, v]) => typeof v === "number" && !isNaN(v))
             );
 
             if (!dataRef.current[sensorId]) dataRef.current[sensorId] = [];
-            dataRef.current[sensorId].push({ time: timeLabel, ...numericFields });
-            dataRef.current[sensorId] = dataRef.current[sensorId].slice(-50);
+
+            // Append new data point with timestamp
+            dataRef.current[sensorId].push({
+              timestamp: now.getTime(), // numeric timestamp
+              time: timeLabel, // human-readable label
+              ...numericFields,
+            });
+
+            // Keep only last ~10 minutes (about 120 samples for 5s intervals)
+            dataRef.current[sensorId] = dataRef.current[sensorId].slice(-120);
           });
 
-          console.log("Parsed sensors:", Object.keys(dataRef.current));
           setSensorData({ ...dataRef.current });
         }
       } catch (err) {
-        console.error("Error parsing message:", err);
+        console.error("Error parsing WebSocket message:", err);
       }
     };
 
@@ -107,7 +115,7 @@ const SensorDashboard = () => {
                 wsStatus === "connected" ? "text-green-500" : "text-red-500"
               }`}
             />
-            <span className="text-sm">{wsStatus}</span>
+            <span className="text-sm capitalize">{wsStatus}</span>
           </div>
         </div>
 
@@ -125,24 +133,43 @@ const SensorDashboard = () => {
                 </h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={sensorData[sensorId]}>
+                    <LineChart
+                      data={sensorData[sensorId]}
+                      margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis />
-                      <Tooltip />
+                      <XAxis
+                        dataKey="time"
+                        interval="preserveStartEnd"
+                        tick={{ fontSize: 10 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10 }}
+                        domain={["auto", "auto"]}
+                        allowDecimals
+                      />
+                      <Tooltip
+                        formatter={(value, name) => [value, name]}
+                        labelFormatter={(label) => `Time: ${label}`}
+                      />
                       <Legend />
                       {Object.keys(sensorData[sensorId][0] || {})
-                        .filter((k) => k !== "time")
+                        .filter((k) => !["time", "timestamp"].includes(k))
                         .map((field, idx) => (
                           <Line
                             key={field}
                             type="monotone"
                             dataKey={field}
                             stroke={
-                              ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed"][
-                                idx % 5
-                              ]
+                              [
+                                "#2563eb", // blue
+                                "#dc2626", // red
+                                "#16a34a", // green
+                                "#d97706", // amber
+                                "#7c3aed", // violet
+                              ][idx % 5]
                             }
+                            strokeWidth={2}
                             dot={false}
                             isAnimationActive={false}
                           />

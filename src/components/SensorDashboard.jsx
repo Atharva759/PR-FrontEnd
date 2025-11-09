@@ -43,45 +43,48 @@ const SensorDashboard = () => {
     };
 
     ws.onmessage = (event) => {
-      try {
+    try {
         const data = JSON.parse(event.data);
 
         if (
-          data.type === "heartbeat" &&
-          data.deviceId.toLowerCase() === deviceId.toLowerCase()
+        data.type === "heartbeat" &&
+        data.deviceId.toLowerCase() === deviceId.toLowerCase()
         ) {
-          const timestamp = new Date().toLocaleTimeString([], {
+        const timestamp = new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
-          });
+        });
 
-          data.sensors.forEach((sensor) => {
+        const updatedData = { ...dataRef.current };
+
+        data.sensors.forEach((sensor) => {
             if (sensor.status !== "active") return;
             const sensorId = sensor.id;
             const fields = sensor.data;
 
             const numericFields = Object.fromEntries(
-              Object.entries(fields)
+            Object.entries(fields)
                 .filter(([_, v]) => !isNaN(v))
                 .map(([k, v]) => [k, Number(v)])
             );
 
             const newEntry = { time: timestamp, ...numericFields };
-            if (!dataRef.current[sensorId]) dataRef.current[sensorId] = [];
-            dataRef.current[sensorId].push(newEntry);
+            const oldEntries = updatedData[sensorId]
+            ? [...updatedData[sensorId]]
+            : [];
+            oldEntries.push(newEntry);
 
-            // Keep only last 60 samples (5s × 60 = 5 minutes)
-            if (dataRef.current[sensorId].length > 60) {
-              dataRef.current[sensorId].shift();
-            }
-          });
+            // Keep last 60 entries (5 min window)
+            updatedData[sensorId] = oldEntries.slice(-60);
+        });
 
-          setSensorData({ ...dataRef.current });
+        dataRef.current = updatedData;
+        setSensorData({ ...updatedData });
         }
-      } catch (err) {
+    } catch (err) {
         console.error("Error parsing WebSocket message:", err);
-      }
+    }
     };
 
     ws.onclose = () => {

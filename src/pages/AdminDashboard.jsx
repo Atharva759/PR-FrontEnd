@@ -73,7 +73,7 @@ const AdminDashboard = () => {
         </div>
 
         
-        <div className="bg-white rounded-2xl shadow-lg p-6 min-h-[500px]">
+        <div className="bg-white rounded-2xl shadow-lg p-6 min-h-[550px]">
           {currentView === "analytics" && <FirebaseAnalytics/>}
           {currentView === "manage" && <ManageUsers />}
           {currentView === "config" &&  <ESP32Setup/> }

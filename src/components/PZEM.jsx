@@ -41,8 +41,8 @@ const PZEM = () => {
   const mountedRef = useRef(false);
 
   const tariffRates = {
-    residential: 3.0,
-    commercial: 5.0,
+    residential: 100.0,
+    commercial: 500.0,
   };
 
   const WS_URL = import.meta.env.VITE_WS_URL || DEFAULT_WS;

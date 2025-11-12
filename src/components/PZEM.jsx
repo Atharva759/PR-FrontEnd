@@ -13,20 +13,8 @@ import {
 } from "recharts";
 import GaugeComponent from "react-gauge-component";
 
-/**
- * Configuration: default WS URL (use VITE_WS_URL to override in env)
- * Backend expects web clients to connect to: /ws/devices
- */
-const DEFAULT_WS = import.meta.env.VITE_WS_URL || "wss://pr-test-quit.onrender.com/ws/devices";
-
-/**
- * PZEM realistic max values (approximate device capabilities):
- * - Voltage: up to 300 V (safe clamp)
- * - Current: up to 100 A (PZEM004T supports up to 100A with proper CT)
- * - Power: up to 25000 W (derived)
- * - Energy: up to 10000 kWh (for display)
- * - Frequency: up to 100 Hz
- */
+const DEFAULT_WS =
+  import.meta.env.VITE_WS_URL || "wss://pr-test-quit.onrender.com/ws/devices";
 
 const PZEM_MAX = {
   voltage: 300,
@@ -48,38 +36,33 @@ const PZEM = () => {
   const [bill, setBill] = useState(0);
   const [lastEnergy, setLastEnergy] = useState(null);
 
-  // reconnect/backoff refs
   const wsRef = useRef(null);
   const reconnectRef = useRef({ tries: 0, timer: null });
   const mountedRef = useRef(false);
 
-  // tariff rates (₹ per kWh)
   const tariffRates = {
     residential: 5.0,
     commercial: 10.0,
   };
 
-  // Use provided WS URL or DEFAULT_WS
   const WS_URL = import.meta.env.VITE_WS_URL || DEFAULT_WS;
 
-  // Safe clamping utility
   const clamp = (v, min = 0, max = 100) => {
     if (Number.isFinite(v) === false) return min;
     return Math.max(min, Math.min(max, v));
   };
 
-  // Safe number parser
   const toNumberSafe = (v) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   };
 
-  // Broadcast to UI: parse incoming heartbeat & push to chart
   const handleHeartbeat = useCallback(
     (data) => {
-      // backend message format matches the example you posted
       const pzemSensor = (data.sensors || []).find((s) =>
-        String(s.id || "").toLowerCase().includes("pzem004t")
+        String(s.id || "")
+          .toLowerCase()
+          .includes("pzem004t")
       );
 
       if (!pzemSensor || !pzemSensor.data) return;
@@ -87,10 +70,8 @@ const PZEM = () => {
       const { voltage_v, current_a, power_w, energy_wh, frequency_hz } =
         pzemSensor.data;
 
-      // Convert Wh to kWh
       const energyKwh = toNumberSafe(energy_wh) / 1000;
 
-      // billing: add only when energy increases
       setLastEnergy((prevEnergy) => {
         if (prevEnergy !== null && energyKwh > prevEnergy) {
           setBill((prevBill) => {
@@ -101,7 +82,6 @@ const PZEM = () => {
         return energyKwh;
       });
 
-
       const now = new Date();
       const timestamp = now.toLocaleTimeString([], {
         hour: "2-digit",
@@ -109,28 +89,29 @@ const PZEM = () => {
         second: "2-digit",
       });
 
-      // push to chart (immutably), keep last 60 points
       setPzemData((prev) => {
         const newPoint = {
           time: timestamp,
           voltage: toNumberSafe(voltage_v),
           current: toNumberSafe(current_a),
           power: toNumberSafe(power_w),
-          energy: Number(energyKwh),
+          energy: toNumberSafe(energyKwh),
           frequency: toNumberSafe(frequency_hz),
         };
         const updated = prev.concat(newPoint);
         return updated.slice(-60);
       });
     },
-    
+
     []
   );
 
-  // Connect with exponential backoff reconnect
   const connectWebSocket = useCallback(() => {
-    // Prevent multiple active sockets
-    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+    if (
+      wsRef.current &&
+      (wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING)
+    ) {
       console.debug("WS already open/connecting; skipping connect");
       return;
     }
@@ -141,10 +122,9 @@ const PZEM = () => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("✅ WebSocket connected");
+        console.log(" WebSocket connected");
         setWsStatus("connected");
 
-        // reset reconnect attempts
         reconnectRef.current.tries = 0;
         if (reconnectRef.current.timer) {
           clearTimeout(reconnectRef.current.timer);
@@ -155,40 +135,44 @@ const PZEM = () => {
       ws.onmessage = (evt) => {
         try {
           const msg = JSON.parse(evt.data);
-          // backend sends 'heartbeat' broadcast to web clients
-          if (msg.type === "heartbeat" && msg.deviceId && deviceId && msg.deviceId.toLowerCase() === deviceId.toLowerCase()) {
+
+          if (
+            msg.type === "heartbeat" &&
+            msg.deviceId &&
+            deviceId &&
+            msg.deviceId.toLowerCase() === deviceId.toLowerCase()
+          ) {
             handleHeartbeat(msg);
           }
-
-          // Optionally handle other server messages (list of devices, device_registered, etc.)
-          // e.g. msg.type === 'devices_list'
         } catch (err) {
-          console.error("⚠️ WebSocket JSON parse error:", err);
+          console.error(" WebSocket JSON parse error:", err);
         }
       };
 
       ws.onclose = (ev) => {
-        console.warn("🔴 WebSocket closed", ev && ev.code, ev && ev.reason);
+        console.warn("WebSocket closed", ev && ev.code, ev && ev.reason);
         setWsStatus("disconnected");
-        // schedule reconnect
+
         if (mountedRef.current) {
           const tries = reconnectRef.current.tries || 0;
           const backoff = Math.min(30000, 1000 * Math.pow(2, tries)); // cap 30s
           reconnectRef.current.tries = tries + 1;
           reconnectRef.current.timer = setTimeout(() => {
-            console.log(`♻️ Reconnecting WebSocket (attempt ${reconnectRef.current.tries})...`);
+            console.log(
+              `♻️ Reconnecting WebSocket (attempt ${reconnectRef.current.tries})...`
+            );
             connectWebSocket();
           }, backoff);
         }
       };
 
       ws.onerror = (err) => {
-        console.error("⚠️ WebSocket error:", err);
-        // `onerror` often followed by `onclose`; we close proactively to trigger reconnect logic
+        console.error("WebSocket error:", err);
+
         try {
           ws.close();
         } catch (errClose) {
-          // ignore
+          console.log("Unexpected Error");
         }
       };
     } catch (err) {
@@ -197,7 +181,6 @@ const PZEM = () => {
     }
   }, [WS_URL, deviceId, handleHeartbeat]);
 
-  // Initialize connection once on mount or when deviceId changes
   useEffect(() => {
     if (!device) {
       navigate("/");
@@ -209,45 +192,49 @@ const PZEM = () => {
 
     return () => {
       mountedRef.current = false;
-      // clear reconnect timer
+
       if (reconnectRef.current.timer) {
         clearTimeout(reconnectRef.current.timer);
         reconnectRef.current.timer = null;
       }
-      // close socket gracefully
+
       if (wsRef.current) {
         try {
           wsRef.current.close();
-        } catch (err) {
-          // ignore
-        }
+        } catch (err) {}
       }
     };
-    
   }, [deviceId, device, connectWebSocket, navigate]);
 
-  // Latest reading shorthand
   const latest = pzemData[pzemData.length - 1] || {};
   const { voltage, current, power, energy, frequency } = latest;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-blue-100 flex flex-col gap-6 p-8 rounded-2xl shadow-inner">
+      <div className="max-w-6xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm mb-6">
+        <div className="flex items-center justify-between bg-blue-600 text-white p-5 rounded-xl shadow-md mb-6">
           <div className="flex items-center gap-3">
-            <ArrowLeft
-              className="w-6 h-6 text-gray-700 cursor-pointer"
+            <button
               onClick={() => navigate(-1)}
-            />
+              className="bg-blue-800 hover:bg-blue-700 transition-all rounded-lg p-2 cursor-pointer"
+            >
+              <ArrowLeft size={22} />
+            </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">PZEM Dashboard</h1>
-              <p className="text-gray-600 text-sm">Device ID: {deviceId}</p>
+              <h1 className="text-2xl font-bold text-white">PZEM Monitoring</h1>
+              <p className="text-blue-200 text-sm">Device ID: {deviceId}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-blue-800 px-3 py-1.5 rounded-lg shadow-inner">
             <Wifi
-              className={`w-5 h-5 ${wsStatus === "connected" ? "text-green-500" : wsStatus === "connecting" ? "text-yellow-500" : "text-red-500"}`}
+              className={`w-5 h-5 ${
+                wsStatus === "connected"
+                  ? "text-green-300"
+                  : wsStatus === "connecting"
+                  ? "text-yellow-300"
+                  : "text-red-300"
+              }`}
             />
             <span className="text-sm capitalize">{wsStatus}</span>
           </div>
@@ -255,16 +242,38 @@ const PZEM = () => {
 
         {/* Gauges grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <GaugeCard label={`Voltage ${voltage} (V)`} value={voltage} max={PZEM_MAX.voltage} />
-          <GaugeCard label={`Current ${current} (A) `} value={current} max={PZEM_MAX.current} />
-          <GaugeCard label={`Power ${power} (W)`} value={power} max={PZEM_MAX.power} />
-          <GaugeCard label={`Energy ${energy}  (kWh)`} value={energy} max={PZEM_MAX.energy} />
-          <GaugeCard label={`Frequency ${frequency} (Hz) `} value={frequency} max={PZEM_MAX.frequency} />
+          <GaugeCard
+            label={`Voltage ${voltage} (V)`}
+            value={voltage}
+            max={PZEM_MAX.voltage}
+          />
+          <GaugeCard
+            label={`Current ${current} (A) `}
+            value={current}
+            max={PZEM_MAX.current}
+          />
+          <GaugeCard
+            label={`Power ${power} (W)`}
+            value={power}
+            max={PZEM_MAX.power}
+          />
+          <GaugeCard
+            label={`Energy ${energy}  (kWh)`}
+            value={energy}
+            max={PZEM_MAX.energy}
+          />
+          <GaugeCard
+            label={`Frequency ${frequency} (Hz) `}
+            value={frequency}
+            max={PZEM_MAX.frequency}
+          />
         </div>
 
         {/* Billing */}
-        <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
-          <h2 className="text-xl font-semibold mb-4">Energy Billing</h2>
+        <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
+          <h2 className="text-xl font-bold text-blue-800 mb-4">
+            Energy Billing
+          </h2>
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <label className="text-gray-700 font-medium">Billing Type:</label>
@@ -279,15 +288,21 @@ const PZEM = () => {
             </div>
 
             <div className="text-center md:text-right">
-              <p className="text-gray-600 text-sm">Rate: ₹{tariffRates[billingType]}/kWh</p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-1">Total Bill: ₹{bill.toFixed(2)}</h3>
+              <p className="text-gray-600 text-sm">
+                Rate: ₹{tariffRates[billingType]}/kWh
+              </p>
+              <h3 className="text-2xl font-bold text-blue-700 mt-1">
+                Total Bill: ₹{bill.toFixed(2)}
+              </h3>
             </div>
           </div>
         </div>
 
         {/* Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">PZEM Sensor Trends</h2>
+        <div className="bg-white p-6 rounded-2xl shadow-lg">
+          <h2 className="text-xl font-bold text-blue-800 mb-4">
+            PZEM Sensor Trends
+          </h2>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={pzemData}>
@@ -296,18 +311,24 @@ const PZEM = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                {["voltage", "current", "power", "energy", "frequency"].map((key, idx) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed"][idx % 5]}
-                    dot={false}
-                    strokeWidth={2}
-                    isAnimationActive={false}
-                    connectNulls={true}
-                  />
-                ))}
+                {["voltage", "current", "power", "energy", "frequency"].map(
+                  (key, idx) => (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      stroke={
+                        ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed"][
+                          idx % 5
+                        ]
+                      }
+                      dot={false}
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                      connectNulls={true}
+                    />
+                  )
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -317,7 +338,6 @@ const PZEM = () => {
   );
 };
 
-
 const GaugeCard = ({ label, value, max }) => {
   const safeVal = (() => {
     const n = Number(value);
@@ -326,8 +346,8 @@ const GaugeCard = ({ label, value, max }) => {
   })();
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center">
-      <h3 className="text-lg font-medium text-gray-800 mb-2">{label}</h3>
+    <div className="bg-white p-5 rounded-2xl shadow-lg flex flex-col items-center">
+      <h3 className="text-lg font-medium text-blue-700 mb-2">{label}</h3>
       <GaugeComponent
         value={safeVal}
         minValue={0}
@@ -360,6 +380,5 @@ const GaugeCard = ({ label, value, max }) => {
     </div>
   );
 };
-
 
 export default PZEM;

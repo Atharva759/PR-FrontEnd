@@ -33,7 +33,6 @@ const SensorDashboard = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log(" WebSocket connected");
       setWsStatus("connected");
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
@@ -74,7 +73,7 @@ const SensorDashboard = () => {
               : [];
             oldEntries.push(newEntry);
 
-            // Keep last 60 entries (5 min window)
+            // Keep last 60 entries
             updatedData[sensorId] = oldEntries.slice(-60);
           });
 
@@ -87,20 +86,14 @@ const SensorDashboard = () => {
     };
 
     ws.onclose = () => {
-      console.log(" WebSocket disconnected");
       setWsStatus("disconnected");
-
-      // Try reconnecting after 5 seconds
       if (!reconnectTimer.current) {
-        reconnectTimer.current = setTimeout(() => {
-          console.log(" Reconnecting WebSocket...");
-          connectWebSocket();
-        }, 5000);
+        reconnectTimer.current = setTimeout(() => connectWebSocket(), 5000);
       }
     };
 
     ws.onerror = (err) => {
-      console.error(" WebSocket error:", err);
+      console.error("WebSocket error:", err);
       ws.close();
     };
   };
@@ -120,80 +113,89 @@ const SensorDashboard = () => {
   const sensors = Object.keys(sensorData);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-blue-200 p-8">
+      <div className="max-w-7xl mx-auto flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm mb-6">
+        <div className="flex items-center justify-between bg-blue-600 text-white rounded-xl shadow-md p-5">
           <div className="flex items-center gap-3">
-            <ArrowLeft
-              className="w-6 h-6 text-gray-700 cursor-pointer"
+            <button
               onClick={() => navigate(-1)}
-            />
+              className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 transition-all px-3 py-2 rounded-lg shadow-md cursor-pointer"
+          >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {device?.name || "ESP32 Dashboard"}
-              </h1>
-              <p className="text-gray-600 text-sm">Device ID: {deviceId}</p>
+              <h2 className="font-bold text-3xl tracking-wide">
+                {device?.name || "ESP8266 Dashboard"}
+              </h2>
+              <p className="text-sm text-blue-100 mt-1">Device ID: {deviceId}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 bg-blue-900 px-4 py-2 rounded-lg shadow">
             <Wifi
               className={`w-5 h-5 ${
-                wsStatus === "connected" ? "text-green-500" : "text-red-500"
+                wsStatus === "connected" ? "text-green-400" : "text-red-400"
               }`}
             />
-            <span className="text-sm">{wsStatus}</span>
+            <span className="text-sm capitalize">{wsStatus}</span>
           </div>
         </div>
 
         {/* Charts */}
-        {sensors.length === 0 ? (
-          <div className="text-center py-10 text-gray-500 bg-white rounded-lg shadow-sm">
-            <p>No sensor data yet — waiting for heartbeat...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {sensors.map((sensorId) => (
-              <div key={sensorId} className="bg-white p-4 rounded-lg shadow-sm">
-                <h2 className="text-lg font-semibold mb-3 capitalize">
-                  {sensorId}
-                </h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={sensorData[sensorId]}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      {Object.keys(sensorData[sensorId][0] || {})
-                        .filter((k) => k !== "time")
-                        .map((field, idx) => (
-                          <Line
-                            key={field}
-                            type="monotone"
-                            dataKey={field}
-                            stroke={
-                              [
-                                "#2563eb",
-                                "#dc2626",
-                                "#16a34a",
-                                "#d97706",
-                                "#7c3aed",
-                              ][idx % 5]
-                            }
-                            dot={false}
-                            strokeWidth={2}
-                            isAnimationActive={false}
-                          />
-                        ))}
-                    </LineChart>
-                  </ResponsiveContainer>
+        <div className="bg-white rounded-2xl shadow-lg p-6 min-h-[550px]">
+          {sensors.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <p>No sensor data yet — waiting for heartbeat...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sensors.map((sensorId) => (
+                <div
+                  key={sensorId}
+                  className="bg-blue-50 border border-blue-100 p-5 rounded-xl shadow-sm"
+                >
+                  <h2 className="text-lg font-semibold mb-3 text-blue-700 capitalize">
+                    {sensorId}
+                  </h2>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={sensorData[sensorId]}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        {Object.keys(sensorData[sensorId][0] || {})
+                          .filter((k) => k !== "time")
+                          .map((field, idx) => (
+                            <Line
+                              key={field}
+                              type="monotone"
+                              dataKey={field}
+                              stroke={
+                                [
+                                  "#2563eb",
+                                  "#dc2626",
+                                  "#16a34a",
+                                  "#d97706",
+                                  "#7c3aed",
+                                ][idx % 5]
+                              }
+                              dot={false}
+                              strokeWidth={2}
+                              isAnimationActive={false}
+                            />
+                          ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

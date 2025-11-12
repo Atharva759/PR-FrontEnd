@@ -6,7 +6,6 @@ import { ref as storageRef, listAll, getMetadata } from "firebase/storage";
 import toast from "react-hot-toast";
 import {
   Database,
-  Cloud,
   Server,
   Wifi,
   HardDrive,
@@ -28,7 +27,6 @@ const Monitoring = () => {
   const [connectedDevices, setConnectedDevices] = useState(0);
   const [timestamps, setTimestamps] = useState({});
 
-  // 🔹 Helper: update timestamps
   const updateTimestamp = (key) => {
     setTimestamps((prev) => ({
       ...prev,
@@ -36,7 +34,6 @@ const Monitoring = () => {
     }));
   };
 
-  // 🔹 Firestore Users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -50,7 +47,6 @@ const Monitoring = () => {
     fetchUsers();
   }, []);
 
-  // 🔹 Realtime DB Connection
   useEffect(() => {
     const connectionsRef = dbRef(database, ".info/connected");
     const unsubscribe = onValue(connectionsRef, (snapshot) => {
@@ -60,7 +56,6 @@ const Monitoring = () => {
     return () => unsubscribe();
   }, []);
 
-  // 🔹 Frontend Status
   useEffect(() => {
     const checkFrontend = async () => {
       try {
@@ -76,7 +71,6 @@ const Monitoring = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Firebase Storage
   useEffect(() => {
     const fetchStorageUsage = async () => {
       try {
@@ -99,7 +93,6 @@ const Monitoring = () => {
     fetchStorageUsage();
   }, []);
 
-  // 🔹 Backend Health
   useEffect(() => {
     const fetchBackendHealth = async () => {
       try {
@@ -118,7 +111,6 @@ const Monitoring = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Status Badge
   const StatusBadge = ({ status }) => {
     const colorMap = {
       Healthy: "bg-green-100 text-green-700",
@@ -186,13 +178,11 @@ const Monitoring = () => {
           value={connectedDevices}
           footer={`Last Updated: ${timestamps.backend || "..."}`}
         />
-        
       </div>
     </div>
   );
 };
 
-// 🔹 Reusable Card Component
 const Card = ({ title, icon, value, footer }) => (
   <div className="bg-white p-6 shadow-md rounded-xl flex flex-col justify-between text-center">
     <div>

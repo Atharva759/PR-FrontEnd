@@ -10,7 +10,6 @@ import {
 import { db } from "../../firebase";
 import { FiEdit, FiTrash, FiPlus, FiCheck, FiX } from "react-icons/fi";
 
-
 const UserForm = ({ form, setForm, onSubmit, editId, onCancel }) => (
   <form
     onSubmit={onSubmit}
@@ -66,7 +65,6 @@ const UserForm = ({ form, setForm, onSubmit, editId, onCancel }) => (
   </form>
 );
 
-
 const UserRow = ({ user, onEdit, onDelete, onRoleChange }) => (
   <tr className="hover:bg-blue-50">
     <td className="p-3 border-b">{user.name}</td>
@@ -99,7 +97,6 @@ const UserRow = ({ user, onEdit, onDelete, onRoleChange }) => (
     </td>
   </tr>
 );
-
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -160,7 +157,6 @@ const ManageUsers = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      
       <UserForm
         form={form}
         setForm={setForm}
@@ -169,7 +165,6 @@ const ManageUsers = () => {
         onCancel={resetForm}
       />
 
-      
       <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
         <table className="w-full border-collapse text-left">
           <thead className="bg-blue-100 rounded-t-2xl">

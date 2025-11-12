@@ -23,10 +23,9 @@ const SensorDashboard = () => {
   const [sensorData, setSensorData] = useState({});
   const [wsStatus, setWsStatus] = useState("connecting");
   const wsRef = useRef(null);
-  const dataRef = useRef({}); // stores persistent sensor data
+  const dataRef = useRef({});
   const reconnectTimer = useRef(null);
 
-  // Function to initialize WebSocket
   const connectWebSocket = () => {
     if (wsRef.current) wsRef.current.close();
 
@@ -34,7 +33,7 @@ const SensorDashboard = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("✅ WebSocket connected");
+      console.log(" WebSocket connected");
       setWsStatus("connected");
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
@@ -43,65 +42,65 @@ const SensorDashboard = () => {
     };
 
     ws.onmessage = (event) => {
-    try {
+      try {
         const data = JSON.parse(event.data);
 
         if (
-        data.type === "heartbeat" &&
-        data.deviceId.toLowerCase() === deviceId.toLowerCase()
+          data.type === "heartbeat" &&
+          data.deviceId.toLowerCase() === deviceId.toLowerCase()
         ) {
-        const timestamp = new Date().toLocaleTimeString([], {
+          const timestamp = new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
-        });
+          });
 
-        const updatedData = { ...dataRef.current };
+          const updatedData = { ...dataRef.current };
 
-        data.sensors.forEach((sensor) => {
+          data.sensors.forEach((sensor) => {
             if (sensor.status !== "active") return;
             const sensorId = sensor.id;
             const fields = sensor.data;
 
             const numericFields = Object.fromEntries(
-            Object.entries(fields)
+              Object.entries(fields)
                 .filter(([_, v]) => !isNaN(v))
                 .map(([k, v]) => [k, Number(v)])
             );
 
             const newEntry = { time: timestamp, ...numericFields };
             const oldEntries = updatedData[sensorId]
-            ? [...updatedData[sensorId]]
-            : [];
+              ? [...updatedData[sensorId]]
+              : [];
             oldEntries.push(newEntry);
 
             // Keep last 60 entries (5 min window)
             updatedData[sensorId] = oldEntries.slice(-60);
-        });
+          });
 
-        dataRef.current = updatedData;
-        setSensorData({ ...updatedData });
+          dataRef.current = updatedData;
+          setSensorData({ ...updatedData });
         }
-    } catch (err) {
+      } catch (err) {
         console.error("Error parsing WebSocket message:", err);
-    }
+      }
     };
 
     ws.onclose = () => {
-      console.log("🔴 WebSocket disconnected");
+      console.log(" WebSocket disconnected");
       setWsStatus("disconnected");
 
       // Try reconnecting after 5 seconds
       if (!reconnectTimer.current) {
         reconnectTimer.current = setTimeout(() => {
-          console.log("♻️ Reconnecting WebSocket...");
+          console.log(" Reconnecting WebSocket...");
           connectWebSocket();
         }, 5000);
       }
     };
 
     ws.onerror = (err) => {
-      console.error("⚠️ WebSocket error:", err);
+      console.error(" WebSocket error:", err);
       ws.close();
     };
   };
@@ -128,7 +127,7 @@ const SensorDashboard = () => {
           <div className="flex items-center gap-3">
             <ArrowLeft
               className="w-6 h-6 text-gray-700 cursor-pointer"
-              onClick={() => navigate("/")}
+              onClick={() => navigate(-1)}
             />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">

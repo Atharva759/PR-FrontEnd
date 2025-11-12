@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Wifi,
   Camera,
@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://pr-test-quit.onrender.com";
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || "https://pr-test-quit.onrender.com";
 const WS_URL = "wss://pr-test-quit.onrender.com/ws/devices";
 
 const ESP32Setup = () => {
@@ -24,7 +25,6 @@ const ESP32Setup = () => {
   const [savingConfig, setSavingConfig] = useState(false);
   const navigate = useNavigate();
 
-  // --- WebSocket for device updates ---
   useEffect(() => {
     const ws = new WebSocket(WS_URL);
 
@@ -68,11 +68,9 @@ const ESP32Setup = () => {
     return () => ws.close();
   }, []);
 
-  // --- Handle selecting a device ---
   const handleDeviceSelect = (device) => {
     setSelectedDevice(device);
 
-    // Initialize config state dynamically based on available capabilities
     const baseConfig = {
       deviceName: device.name || "",
       samplingRate: device.samplingRate || 1000,
@@ -82,84 +80,78 @@ const ESP32Setup = () => {
     };
 
     device.capabilities?.forEach((cap) => {
-      baseConfig[`enable_${cap.id}`] = true; // assume enabled by default
+      baseConfig[`enable_${cap.id}`] = true;
     });
 
     setDeviceConfig(baseConfig);
   };
 
-  // --- Handle config field changes ---
   const handleConfigChange = (field, value) => {
     setDeviceConfig((prev) => ({ ...prev, [field]: value }));
   };
 
-  // --- Save configuration to backend ---
-const handleSaveConfig = async () => {
-  if (!selectedDevice) return;
-  setSavingConfig(true);
+  const handleSaveConfig = async () => {
+    if (!selectedDevice) return;
+    setSavingConfig(true);
 
-  try {
-    const updatedCapabilities = selectedDevice.capabilities.map((cap) => {
-      if (cap.configurable)
-        return {
-          ...cap,
-          enabled: !!deviceConfig[`enable_${cap.id}`],
-        };
-      return cap;
-    });
+    try {
+      const updatedCapabilities = selectedDevice.capabilities.map((cap) => {
+        if (cap.configurable)
+          return {
+            ...cap,
+            enabled: !!deviceConfig[`enable_${cap.id}`],
+          };
+        return cap;
+      });
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/devices/${selectedDevice.deviceId}/configure`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceName: deviceConfig.deviceName,
-          samplingRate: deviceConfig.samplingRate,
-          cameraResolution: deviceConfig.cameraResolution,
-          compressionEnabled: deviceConfig.compressionEnabled,
-          otaEnabled: deviceConfig.otaEnabled,
-          capabilities: updatedCapabilities,
-        }),
+      const response = await fetch(
+        `${BACKEND_URL}/api/devices/${selectedDevice.deviceId}/configure`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceName: deviceConfig.deviceName,
+            samplingRate: deviceConfig.samplingRate,
+            cameraResolution: deviceConfig.cameraResolution,
+            compressionEnabled: deviceConfig.compressionEnabled,
+            otaEnabled: deviceConfig.otaEnabled,
+            capabilities: updatedCapabilities,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        alert("Failed to save configuration");
+        return;
       }
-    );
 
-    if (!response.ok) {
-      alert("Failed to save configuration");
-      return;
+      const { device } = await response.json();
+
+      setSelectedDevice(device);
+      setConnectedDevices((prev) =>
+        prev.map((d) => (d.deviceId === device.deviceId ? device : d))
+      );
+
+      const newConfig = {
+        deviceName: device.name,
+        samplingRate: device.samplingRate,
+        cameraResolution: device.cameraResolution,
+        compressionEnabled: device.compressionEnabled,
+        otaEnabled: device.otaEnabled,
+      };
+      device.capabilities?.forEach((cap) => {
+        newConfig[`enable_${cap.id}`] = cap.enabled ?? true;
+      });
+      setDeviceConfig(newConfig);
+
+      alert("Configuration saved successfully!");
+    } catch (err) {
+      console.error("Error saving config:", err);
+      alert("Error saving configuration");
+    } finally {
+      setSavingConfig(false);
     }
-
-    // ✅ Parse backend’s updated device
-    const { device } = await response.json();
-
-    // ✅ Update local states
-    setSelectedDevice(device);
-    setConnectedDevices((prev) =>
-      prev.map((d) => (d.deviceId === device.deviceId ? device : d))
-    );
-
-    // ✅ Update config fields for display consistency
-    const newConfig = {
-      deviceName: device.name,
-      samplingRate: device.samplingRate,
-      cameraResolution: device.cameraResolution,
-      compressionEnabled: device.compressionEnabled,
-      otaEnabled: device.otaEnabled,
-    };
-    device.capabilities?.forEach((cap) => {
-      newConfig[`enable_${cap.id}`] = cap.enabled ?? true;
-    });
-    setDeviceConfig(newConfig);
-
-    alert("Configuration saved successfully!");
-  } catch (err) {
-    console.error("Error saving config:", err);
-    alert("Error saving configuration");
-  } finally {
-    setSavingConfig(false);
-  }
-};
-
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -448,7 +440,7 @@ const handleSaveConfig = async () => {
                     <button
                       onClick={handleSaveConfig}
                       disabled={savingConfig}
-                      className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {savingConfig ? (
                         <>
@@ -462,14 +454,32 @@ const handleSaveConfig = async () => {
                         </>
                       )}
                     </button>
+
                     {/* Sensor Dashboard Button */}
-                        <button
-                          onClick={() => navigate(`/dashboard/${selectedDevice.deviceId}`, { state: { device: selectedDevice } })}
-                          className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Zap className="w-5 h-5" />
-                          View Dashboard
-                        </button>
+                    <button
+                      onClick={() =>
+                        navigate(`/dashboard/${selectedDevice.deviceId}`, {
+                          state: { device: selectedDevice },
+                        })
+                      }
+                      className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Zap className="w-5 h-5" />
+                      View Dashboard
+                    </button>
+
+                    {/* PZEM Dashboard Button */}
+                    <button
+                      onClick={() =>
+                        navigate(`/pzem/${selectedDevice.deviceId}`, {
+                          state: { device: selectedDevice },
+                        })
+                      }
+                      className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Zap className="w-5 h-5" />
+                      View PZEM
+                    </button>
                   </div>
                 </div>
               </>

@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import AdminLogin from "./pages/AdminLogin";
 import ManageUsers from "./components/ManageUsers";
 import SensorDashboard from "./components/SensorDashboard";
+import PZEM from "./components/PZEM";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             }
           />
           <Route path="/dashboard/:deviceId" element={<SensorDashboard />} />
+          <Route path="/pzem/:deviceId" element={<PZEM />} />
         </Routes>
       </BrowserRouter>
     </>

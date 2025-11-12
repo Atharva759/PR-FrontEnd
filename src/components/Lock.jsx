@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"; 
-import { database,ref,onValue,set } from "../../firebase"; 
+import { useState, useEffect } from "react";
+import { database, ref, onValue, set } from "../../firebase";
 import { Switch } from "@mui/joy";
 import { FaLock, FaLockOpen } from "react-icons/fa6";
 import toast from "react-hot-toast";
@@ -8,7 +8,7 @@ const Lock = () => {
   const [isLock, setIsLock] = useState(true);
 
   useEffect(() => {
-    const lockRef = ref(database, "isLock"); 
+    const lockRef = ref(database, "isLock");
     const unsubscribe = onValue(lockRef, (snapshot) => {
       const val = snapshot.val();
       if (typeof val === "boolean") {
@@ -17,16 +17,16 @@ const Lock = () => {
         console.warn("Expected boolean, got:", val);
       }
     });
-    return () => unsubscribe(); 
+    return () => unsubscribe();
   }, []);
 
   const toggleLock = () => {
     const newState = !isLock;
-    set(ref(database, "isLock"), newState); 
+    set(ref(database, "isLock"), newState);
     toast.success("Door will autoclose in 5s.");
 
     setTimeout(() => {
-      set(ref(database, "isLock"), isLock); 
+      set(ref(database, "isLock"), isLock);
       toast.error("Door Closed.");
     }, 5000);
   };

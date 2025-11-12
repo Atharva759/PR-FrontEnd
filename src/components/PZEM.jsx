@@ -68,7 +68,7 @@ const PZEM = () => {
       if (!pzemSensor || !pzemSensor.data) return;
 
       const { voltage_v, current_a, power_w, energy_wh, frequency_hz } =
-        pzemSenso.dta;
+        pzemSensor.data;
 
       const energyKwh = toNumberSafe(energy_wh) / 1000;
 

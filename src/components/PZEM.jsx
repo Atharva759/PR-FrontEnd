@@ -41,8 +41,8 @@ const PZEM = () => {
   const mountedRef = useRef(false);
 
   const tariffRates = {
-    residential: 5.0,
-    commercial: 10.0,
+    residential: 3.0,
+    commercial: 5.0,
   };
 
   const WS_URL = import.meta.env.VITE_WS_URL || DEFAULT_WS;
@@ -68,7 +68,7 @@ const PZEM = () => {
       if (!pzemSensor || !pzemSensor.data) return;
 
       const { voltage_v, current_a, power_w, energy_wh, frequency_hz } =
-        pzemSensor.data;
+        pzemSenso.dta;
 
       const energyKwh = toNumberSafe(energy_wh) / 1000;
 

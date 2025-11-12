@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { ArrowLeft, Wifi } from "lucide-react";
 
-const WS_URL = "wss://pr-test-quit.onrender.com/ws/devices";
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 const SensorDashboard = () => {
   const { deviceId } = useParams();

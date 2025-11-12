@@ -13,9 +13,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "https://pr-test-quit.onrender.com";
-const WS_URL = "wss://pr-test-quit.onrender.com/ws/devices";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 const ESP32Setup = () => {
   const [connectedDevices, setConnectedDevices] = useState([]);

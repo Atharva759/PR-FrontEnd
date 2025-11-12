@@ -14,7 +14,7 @@ import {
 import GaugeComponent from "react-gauge-component";
 
 const DEFAULT_WS =
-  import.meta.env.VITE_WS_URL || "wss://pr-test-quit.onrender.com/ws/devices";
+  import.meta.env.VITE_WS_URL ;
 
 const PZEM_MAX = {
   voltage: 300,

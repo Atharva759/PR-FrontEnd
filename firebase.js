@@ -1,9 +1,13 @@
 import { initializeApp } from "firebase/app";
-import { getAuth,GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import {getDatabase, ref,set, onValue} from "firebase/database";
-import {getAnalytics,logEvent} from "firebase/analytics";
+import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
+
+import { 
+  ref,
+  onValue,set
+} from "firebase/database";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,19 +17,18 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MSG_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APPID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-  databaseURL:import.meta.env.VITE_FIREBASE_DB_URL
+  databaseURL: import.meta.env.VITE_FIREBASE_DB_URL
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
 const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
-const database = getDatabase(app);
-const analytics = getAnalytics(app);
 const storage = getStorage(app);
+const database = getDatabase(app);
 
-export { auth, db,googleProvider,database,ref,set,onValue,storage };
 
-logEvent(analytics, 'sign_up', { method: 'google' });
-logEvent(analytics, 'login', { method: 'email_link' });
+const googleProvider = new GoogleAuthProvider();
 
+
+export { auth, db, storage, database, googleProvider,onValue,ref,set };

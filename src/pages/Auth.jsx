@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../../firebase";
+import { auth, db, googleProvider } from "../../firebase";
 import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
   onAuthStateChanged,
   signInWithPopup,
-  GoogleAuthProvider,
 } from "firebase/auth";
-import { getDoc, setDoc, doc, runTransaction } from "firebase/firestore";
+import {
+  doc,
+  serverTimestamp,
+  runTransaction,
+} from "firebase/firestore";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
 
@@ -18,143 +21,142 @@ const actionCodeSettings = {
   handleCodeInApp: true,
 };
 
-const googleProvider = new GoogleAuthProvider();
-
 const Auth = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const navigate = useNavigate();
 
-  const redirectToDashboard = () => {
-    navigate("/dashboard");
-  };
+  const redirectToDashboard = () => navigate("/dashboard");
 
-  
-  const createUserWithUniqueEmail = async (user, displayName, provider = "email") => {
-    const emailDocRef = doc(db, "emails", user.email); 
+  /**
+   * Create user document with duplicate email check
+   */
+  const createUserWithUniqueEmail = async (user, displayName, provider) => {
+    const emailDocRef = doc(db, "emails", user.email);
     const userDocRef = doc(db, "users", user.uid);
 
     await runTransaction(db, async (transaction) => {
       const emailDoc = await transaction.get(emailDocRef);
       const userDoc = await transaction.get(userDocRef);
 
-     
+      // Create email doc if not exists
       if (!emailDoc.exists()) {
         transaction.set(emailDocRef, { uid: user.uid });
       }
 
+      // Create user doc if not exists
       if (!userDoc.exists()) {
-        
         transaction.set(userDocRef, {
-          name: displayName || user.displayName || "User",
+          name: displayName || "User",
           email: user.email,
-          role: "employee", 
-          provider: provider,
-          createdAt: new Date(),
+          role: "employee",
+          provider
         });
-      } else {
-        
-        const existingData = userDoc.data();
-        if (!existingData.provider) {
-          transaction.update(userDocRef, { provider });
-        }
       }
     });
   };
 
-  
+  /**
+   * Handle Email Link Login
+   */
   useEffect(() => {
-    const handleEmailLinkSignIn = async () => {
+    const checkEmailLink = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
-        const emailForSignIn = window.localStorage.getItem("email");
+        const savedEmail = localStorage.getItem("email");
+        const savedName = localStorage.getItem("signupName") || "User";
+
         try {
           const result = await toast.promise(
-            signInWithEmailLink(auth, emailForSignIn, window.location.href),
+            signInWithEmailLink(auth, savedEmail, window.location.href),
             {
               loading: "Signing you in...",
               success: "Signed in successfully!",
-              error: (err) => `Sign-in failed: ${err.message}`,
+              error: "Sign-in failed!",
             }
           );
 
           const user = result.user;
-          const signupName = name || "User";
 
-          try {
-            await createUserWithUniqueEmail(user, signupName, "email");
-          } catch (error) {
-            console.log("Duplicate email detected:", error.message);
-          }
+          await createUserWithUniqueEmail(user, savedName, "email");
+
+          localStorage.removeItem("email");
+          localStorage.removeItem("signupName");
+
           redirectToDashboard();
         } catch (error) {
-          console.error("Email sign-in error:", error);
+          console.error("Email link login error:", error);
         }
       }
     };
-  
-    handleEmailLinkSignIn();
+
+    checkEmailLink();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          redirectToDashboard();
-        }
+        redirectToDashboard();
       }
     });
 
     return () => unsubscribe();
-  }, [navigate, name]);
+  }, []);
 
-  
+  /**
+   * Send Email Link
+   */
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
+
     if (isSignup && !name.trim()) {
       toast.error("Please enter your name.");
       return;
     }
+
     try {
       await toast.promise(
         sendSignInLinkToEmail(auth, email, actionCodeSettings),
         {
-          loading: "Sending Email link...",
-          success: `Check your inbox! A sign-in link was sent to ${email}.`,
-          error: (err) => `Failed to send link: ${err.message}`,
+          loading: "Sending email link...",
+          success: `Link sent to ${email}`,
+          error: "Failed to send link",
         }
       );
-      window.localStorage.setItem("email", email);
+
+      localStorage.setItem("email", email);
+      localStorage.setItem("signupName", name);
+
       setEmail("");
       setName("");
     } catch (error) {
-      console.error("Email link error:", error);
+      console.error("Email link send error:", error);
     }
   };
 
-  
+  /**
+   * Google Login
+   */
   const handleGoogleLogin = async () => {
     try {
       const result = await toast.promise(signInWithPopup(auth, googleProvider), {
         loading: "Signing in with Google...",
-        success: "Logged in with Google!",
-        error: (err) => `Google sign-in failed: ${err.message}`,
+        success: "Google sign-in successful!",
+        error: "Google sign-in failed",
       });
 
       const user = result.user;
 
-      try {
-        await createUserWithUniqueEmail(user, user.displayName || "Google User", "google");
-      } catch (error) {
-        console.log("Duplicate email detected:", error.message);
-      }
+      await createUserWithUniqueEmail(
+        user,
+        user.displayName || "Google User",
+        "google"
+      );
 
       redirectToDashboard();
     } catch (error) {
-      console.error("Google login error:", error);
+      console.error("Google Login Error:", error);
     }
   };
 
-  
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-600">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">

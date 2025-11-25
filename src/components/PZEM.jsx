@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Wifi } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -12,10 +11,11 @@ import {
   Legend,
 } from "recharts";
 import GaugeComponent from "react-gauge-component";
+import { useNavigate } from "react-router-dom";
 
-const DEFAULT_WS =
-  import.meta.env.VITE_WS_URL ;
+const API_BASE = import.meta.env.VITE_BACKEND_URL;
 
+// Max PZEM limits
 const PZEM_MAX = {
   voltage: 300,
   current: 100,
@@ -24,315 +24,195 @@ const PZEM_MAX = {
   frequency: 65,
 };
 
+// Tariff rates
+const TARIFF_RATES = {
+  residential: 8.25,
+  commercial: 12.5,
+};
+
 const PZEM = () => {
-  const { deviceId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  const device = location.state?.device;
 
-  const [pzemData, setPzemData] = useState([]);
-  const [wsStatus, setWsStatus] = useState("connecting");
-  const [billingType, setBillingType] = useState("residential");
-  const [bill, setBill] = useState(0);
-  const [lastEnergy, setLastEnergy] = useState(null);
+  const [latest, setLatest] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [tariffType, setTariffType] = useState("residential");
 
-  const wsRef = useRef(null);
-  const reconnectRef = useRef({ tries: 0, timer: null });
-  const mountedRef = useRef(false);
+  const [billing, setBilling] = useState({
+    kwh: 0,
+    cost: 0,
+  });
 
-  const tariffRates = {
-    residential: 100.0,
-    commercial: 500.0,
-  };
-
-  const WS_URL = import.meta.env.VITE_WS_URL || DEFAULT_WS;
-
-  const clamp = (v, min = 0, max = 100) => {
-    if (Number.isFinite(v) === false) return min;
-    return Math.max(min, Math.min(max, v));
-  };
-
-  const toNumberSafe = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  const handleHeartbeat = useCallback(
-    (data) => {
-      const pzemSensor = (data.sensors || []).find((s) =>
-        String(s.id || "")
-          .toLowerCase()
-          .includes("pzem004t")
-      );
-
-      if (!pzemSensor || !pzemSensor.data) return;
-
-      const { voltage_v, current_a, power_w, energy_wh, frequency_hz } =
-        pzemSensor.data;
-
-      const energyKwh = toNumberSafe(energy_wh) / 1000;
-
-      setLastEnergy((prevEnergy) => {
-        if (prevEnergy !== null && energyKwh > prevEnergy) {
-          setBill((prevBill) => {
-            const delta = energyKwh - prevEnergy;
-            return prevBill + delta * tariffRates[billingType];
-          });
-        }
-        return energyKwh;
-      });
-
-      const now = new Date();
-      const timestamp = now.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-
-      setPzemData((prev) => {
-        const newPoint = {
-          time: timestamp,
-          voltage: toNumberSafe(voltage_v),
-          current: toNumberSafe(current_a),
-          power: toNumberSafe(power_w),
-          energy: toNumberSafe(energyKwh),
-          frequency: toNumberSafe(frequency_hz),
-        };
-        const updated = prev.concat(newPoint);
-        return updated.slice(-60);
-      });
-    },
-
-    []
-  );
-
-  const connectWebSocket = useCallback(() => {
-    if (
-      wsRef.current &&
-      (wsRef.current.readyState === WebSocket.OPEN ||
-        wsRef.current.readyState === WebSocket.CONNECTING)
-    ) {
-      console.debug("WS already open/connecting; skipping connect");
-      return;
-    }
-
+  const fetchLatest = async () => {
     try {
-      setWsStatus("connecting");
-      const ws = new WebSocket(WS_URL);
-      wsRef.current = ws;
+      const res = await fetch(`${API_BASE}/api/pzem/latest`);
+      const json = await res.json();
+      if (json.success) {
+        setLatest(json.data);
 
-      ws.onopen = () => {
-        console.log(" WebSocket connected");
-        setWsStatus("connected");
+        const kwh = json.data.energy / 1000;
+        const rate = TARIFF_RATES[tariffType];
+        const cost = kwh * rate;
 
-        reconnectRef.current.tries = 0;
-        if (reconnectRef.current.timer) {
-          clearTimeout(reconnectRef.current.timer);
-          reconnectRef.current.timer = null;
-        }
-      };
-
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-
-          if (
-            msg.type === "heartbeat" &&
-            msg.deviceId &&
-            deviceId &&
-            msg.deviceId.toLowerCase() === deviceId.toLowerCase()
-          ) {
-            handleHeartbeat(msg);
-          }
-        } catch (err) {
-          console.error(" WebSocket JSON parse error:", err);
-        }
-      };
-
-      ws.onclose = (ev) => {
-        console.warn("WebSocket closed", ev && ev.code, ev && ev.reason);
-        setWsStatus("disconnected");
-
-        if (mountedRef.current) {
-          const tries = reconnectRef.current.tries || 0;
-          const backoff = Math.min(30000, 1000 * Math.pow(2, tries)); // cap 30s
-          reconnectRef.current.tries = tries + 1;
-          reconnectRef.current.timer = setTimeout(() => {
-            console.log(
-              `♻️ Reconnecting WebSocket (attempt ${reconnectRef.current.tries})...`
-            );
-            connectWebSocket();
-          }, backoff);
-        }
-      };
-
-      ws.onerror = (err) => {
-        console.error("WebSocket error:", err);
-
-        try {
-          ws.close();
-        } catch (errClose) {
-          console.log("Unexpected Error");
-        }
-      };
+        setBilling({ kwh, cost });
+      }
     } catch (err) {
-      console.error("Failed to create WebSocket:", err);
-      setWsStatus("error");
+      console.error("Fetch latest error:", err);
     }
-  }, [WS_URL, deviceId, handleHeartbeat]);
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pzem/history`);
+      const json = await res.json();
+
+      if (json.success) {
+        const formatted = json.history.map((item) => ({
+          time: new Date(item.timestamp).toLocaleTimeString(),
+          voltage: item.voltage,
+          current: item.current,
+          power: item.power,
+          energy: item.energy / 1000,
+          frequency: item.frequency,
+        }));
+
+        setHistory(formatted);
+      }
+    } catch (err) {
+      console.error("Fetch history error:", err);
+    }
+  };
 
   useEffect(() => {
-    if (!device) {
-      navigate("/");
-      return;
+    if (latest) {
+      const kwh = latest.energy / 1000;
+      const rate = TARIFF_RATES[tariffType];
+      const cost = kwh * rate;
+
+      setBilling({ kwh, cost });
     }
+  }, [tariffType]);
 
-    mountedRef.current = true;
-    connectWebSocket();
+  useEffect(() => {
+    fetchLatest();
+    fetchHistory();
 
-    return () => {
-      mountedRef.current = false;
+    const interval = setInterval(() => {
+      fetchLatest();
+      fetchHistory();
+    }, 5000);
 
-      if (reconnectRef.current.timer) {
-        clearTimeout(reconnectRef.current.timer);
-        reconnectRef.current.timer = null;
-      }
-
-      if (wsRef.current) {
-        try {
-          wsRef.current.close();
-        } catch (err) {}
-      }
-    };
-  }, [deviceId, device, connectWebSocket, navigate]);
-
-  const latest = pzemData[pzemData.length - 1] || {};
-  const { voltage, current, power, energy, frequency } = latest;
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-blue-100 flex flex-col gap-6 p-8 rounded-2xl shadow-inner">
-      <div className="max-w-6xl mx-auto w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between bg-blue-600 text-white p-5 rounded-xl shadow-md mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="bg-blue-800 hover:bg-blue-700 transition-all rounded-lg p-2 cursor-pointer"
-            >
-              <ArrowLeft size={22} />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-white">PZEM Monitoring</h1>
-              <p className="text-blue-200 text-sm">Device ID: {deviceId}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-blue-800 px-3 py-1.5 rounded-lg shadow-inner">
-            <Wifi
-              className={`w-5 h-5 ${
-                wsStatus === "connected"
-                  ? "text-green-300"
-                  : wsStatus === "connecting"
-                  ? "text-yellow-300"
-                  : "text-red-300"
-              }`}
-            />
-            <span className="text-sm capitalize">{wsStatus}</span>
-          </div>
+    <div className="min-h-screen p-6 bg-blue-100">
+      <div className="flex items-center justify-between bg-blue-600 text-white p-5 rounded-xl shadow mb-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="bg-blue-800 hover:bg-blue-700 p-2 rounded-lg cursor-pointer"
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h1 className="text-xl font-bold">PZEM Energy Dashboard</h1>
         </div>
+      </div>
 
-        {/* Gauges grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {latest && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <GaugeCard
-            label={`Voltage ${voltage} (V)`}
-            value={voltage}
+            label={`Voltage ${latest.voltage} (V)`}
+            value={latest.voltage}
             max={PZEM_MAX.voltage}
           />
+
           <GaugeCard
-            label={`Current ${current} (A) `}
-            value={current}
+            label={`Current ${latest.current} (A)`}
+            value={latest.current}
             max={PZEM_MAX.current}
           />
+
           <GaugeCard
-            label={`Power ${power} (W)`}
-            value={power}
+            label={`Power ${latest.power} (W)`}
+            value={latest.power}
             max={PZEM_MAX.power}
           />
+
           <GaugeCard
-            label={`Energy ${energy}  (kWh)`}
-            value={energy}
+            label={`Energy ${(latest.energy / 1000).toFixed(2)} (kWh)`}
+            value={latest.energy / 1000}
             max={PZEM_MAX.energy}
           />
+
           <GaugeCard
-            label={`Frequency ${frequency} (Hz) `}
-            value={frequency}
-            max={PZEM_MAX.frequency}
+            label={`Frequency ${latest.frequency} (Hz)`}
+            value={latest.frequency}
+            max={70}
           />
         </div>
+      )}
 
-        {/* Billing */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
-          <h2 className="text-xl font-bold text-blue-800 mb-4">
-            Energy Billing
-          </h2>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <label className="text-gray-700 font-medium">Billing Type:</label>
-              <select
-                className="border rounded-md px-3 py-2"
-                value={billingType}
-                onChange={(e) => setBillingType(e.target.value)}
-              >
-                <option value="residential">Residential</option>
-                <option value="commercial">Commercial</option>
-              </select>
-            </div>
+      <div className="mt-8 bg-white p-6 rounded-xl shadow-md border border-blue-300">
+        <h2 className="text-xl font-semibold text-blue-700 mb-4">
+          Billing Summary
+        </h2>
 
-            <div className="text-center md:text-right">
-              <p className="text-gray-600 text-sm">
-                Rate: ₹{tariffRates[billingType]}/kWh
-              </p>
-              <h3 className="text-2xl font-bold text-blue-700 mt-1">
-                Total Bill: ₹{bill.toFixed(2)}
-              </h3>
-            </div>
-          </div>
+        <div className="mb-6">
+          <label className="text-blue-900 font-semibold mr-3">
+            Select Tariff Type:
+          </label>
+          <select
+            value={tariffType}
+            onChange={(e) => setTariffType(e.target.value)}
+            className="p-2 rounded-lg border border-blue-400 shadow-md"
+          >
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+          </select>
         </div>
 
-        {/* Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold text-blue-800 mb-4">
-            PZEM Sensor Trends
-          </h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={pzemData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                {["voltage", "current", "power", "energy", "frequency"].map(
-                  (key, idx) => (
-                    <Line
-                      key={key}
-                      type="monotone"
-                      dataKey={key}
-                      stroke={
-                        ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed"][
-                          idx % 5
-                        ]
-                      }
-                      dot={false}
-                      strokeWidth={2}
-                      isAnimationActive={false}
-                      connectNulls={true}
-                    />
-                  )
-                )}
-              </LineChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-lg">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
+            <p className="text-blue-900 font-semibold">Total Energy</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {billing.kwh.toFixed(3)} kWh
+            </p>
+          </div>
+
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
+            <p className="text-blue-900 font-semibold">Tariff Rate</p>
+            <p className="text-2xl font-bold text-blue-600">
+              ₹ {TARIFF_RATES[tariffType]}/kWh
+            </p>
+          </div>
+
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
+            <p className="text-blue-900 font-semibold">Total Cost</p>
+            <p className="text-2xl font-bold text-green-600">
+              ₹ {billing.cost.toFixed(2)}
+            </p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-10 bg-white p-6 rounded-xl shadow-md">
+        <h2 className="text-lg font-semibold mb-4 text-blue-700">
+          Historical Trend
+        </h2>
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart data={history}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="time" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+
+            <Line type="monotone" dataKey="voltage" stroke="#2563eb" />
+            <Line type="monotone" dataKey="current" stroke="#16a34a" />
+            <Line type="monotone" dataKey="power" stroke="#e11d48" />
+            <Line type="monotone" dataKey="energy" stroke="#7c3aed" />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -347,7 +227,8 @@ const GaugeCard = ({ label, value, max }) => {
 
   return (
     <div className="bg-white p-5 rounded-2xl shadow-lg flex flex-col items-center">
-      <h3 className="text-lg font-medium text-blue-700 mb-2">{label}</h3>
+      <h3 className="text-2xl font-medium text-blue-700 mb-2">{label}</h3>
+
       <GaugeComponent
         value={safeVal}
         minValue={0}
@@ -375,7 +256,7 @@ const GaugeCard = ({ label, value, max }) => {
             style: { fontSize: "1.3rem", fill: "#374151" },
           },
         }}
-        style={{ width: "100%", height: "140px" }}
+        style={{ width: "80%", height: "80%" }}
       />
     </div>
   );

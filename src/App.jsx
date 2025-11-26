@@ -45,8 +45,22 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="/dashboard/:deviceId" element={<SensorDashboard />} />
-          <Route path="/pzem/:deviceId" element={<PZEM />} />
+          <Route
+            path="/dashboard/:deviceId"
+            element={
+              <PrivateRoute>
+                <SensorDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/pzem/:deviceId"
+            element={
+              <PrivateRoute>
+                <PZEM />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </>

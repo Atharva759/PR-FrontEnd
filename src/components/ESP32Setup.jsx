@@ -12,6 +12,7 @@ import {
   Save,
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Link } from "react-router";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -183,7 +184,7 @@ const ESP32Setup = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -193,6 +194,7 @@ const ESP32Setup = () => {
               Configure and manage your ESP32 nodes
             </p>
           </div>
+          
           <div className="flex items-center gap-2">
             <Radio className={`w-5 h-5 ${getStatusColor(wsStatus)}`} />
             <span className="text-sm font-medium">

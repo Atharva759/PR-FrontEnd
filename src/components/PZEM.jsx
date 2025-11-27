@@ -73,7 +73,7 @@ const PZEM = () => {
 
       if (json.success) {
         const formatted = json.history.map((item) => ({
-          time: new Date(item.timestamp).toLocaleTimeString(),
+          time: new Date(item.timestamp),
           voltage: item.voltage,
           current: item.current,
           power: item.power,
@@ -126,14 +126,31 @@ const PZEM = () => {
     }
   };
 
-  // remove slice to see more
-  const combinedEnergy = history.slice(-10).map((item, index) => ({
-    time: item.time,
-    energy: item.energy * 1000, // actual
-    predicted_energy: mlPredictions[index]
-      ? mlPredictions[index].predicted_energy
-      : null,
-  }));
+    // Number of overlapping points for comparison
+    const overlapCount = 6;  // show both actual + predicted together for 6 readings
+
+    const actualSlice = history.slice(-overlapCount);
+    const predictionSlice = mlPredictions.slice(-10);  // predictions available
+
+    // Merge overlapping actual+predicted
+    const overlapped = actualSlice.map((item, index) => ({
+      time: item.time,
+      actual: item.energy * 1000,
+      predicted: predictionSlice[index] ? predictionSlice[index].predicted_energy : null,
+    }));
+    const lastTime = actualSlice[actualSlice.length-1]?.time || new Date();
+    const timeStepSec = 5;
+
+    // Extend future prediction (remaining points show only predicted)
+    const future = predictionSlice.slice(overlapCount).map((p, i) => ({
+      time: new Date(lastTime.getTime() + (i+1) * timeStepSec*1000),
+      actual: null,                 // no real values here
+      predicted: p.predicted_energy,
+    }));
+
+    // Final dataset for chart
+    const combinedEnergy = [...overlapped, ...future];
+
 
   // Tariff update
   useEffect(() => {
@@ -341,7 +358,7 @@ const PZEM = () => {
               </defs>
 
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
+              <XAxis dataKey="time" tickFormatter={(t)=> new Date(t).toLocaleTimeString()}/>
               <YAxis />
               <Tooltip />
               <Legend />
@@ -349,7 +366,7 @@ const PZEM = () => {
               {/* Actual Energy */}
               <Area
                 type="monotone"
-                dataKey="energy"
+                dataKey="actual"
                 stroke="#7c3aed"
                 fill="url(#actual)"
                 strokeWidth={3}
@@ -358,7 +375,7 @@ const PZEM = () => {
               {/* Predicted Energy */}
               <Area
                 type="monotone"
-                dataKey="predicted_energy"
+                dataKey="predicted"
                 stroke="#f59e0b"
                 fill="url(#predicted)"
                 strokeWidth={3}

@@ -1,4 +1,4 @@
-export default function CameraStream({ camUrl }) {
+export default function FaceDetection({ camUrl }) {
   if (!camUrl) return null;
 
   return (
@@ -7,7 +7,7 @@ export default function CameraStream({ camUrl }) {
       <img
         src={camUrl}
         alt="Live Stream"
-        style={{ width: "480px", borderRadius: "10px" }}
+        style={{ width: "800px",height: "450px", borderRadius: "10px" }}
       />
     </div>
   );

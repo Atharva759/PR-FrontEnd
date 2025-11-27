@@ -91,7 +91,7 @@ const AdminDashboard = () => {
           {currentView === "adminActions" && <Lock />}
           {currentView === "logs" && <Logs />}
           {currentView === "monitoring" && <Monitoring />}
-          {currentView === "liveFeed" && <FaceDetection camUrl={CAMURL} />}
+          {currentView === "liveFeed" && <FaceDetection camUrl={CAMURL}  />}
           {currentView === "help" && <p>Help & support</p>}
         </div>
       </div>

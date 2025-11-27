@@ -126,6 +126,15 @@ const PZEM = () => {
     }
   };
 
+  // remove slice to see more 
+  const combinedEnergy = history.slice(-10).map((item, index) => ({
+  time: item.time,
+  energy: item.energy*1000, // actual
+  predicted_energy: mlPredictions[index]
+    ? mlPredictions[index].predicted_energy 
+    : null,
+  }));
+
   // Tariff update
   useEffect(() => {
     if (latest) {
@@ -312,68 +321,51 @@ const PZEM = () => {
       {/* Actual vs Predicted Energy Charts */}
       <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Actual Energy */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-lg font-semibold mb-4 text-blue-700">
-            Actual Energy (kWh)
-          </h2>
+        <div className="bg-white p-6 rounded-xl shadow-md mt-10">
+  <h2 className="text-lg font-semibold mb-4 text-blue-700">
+    Actual vs Predicted Energy 
+  </h2>
 
-          <ResponsiveContainer width="100%" height={350}>
-            <AreaChart data={history.slice(-10)}>
-              <defs>
-                <linearGradient id="actualEnergy" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+  <ResponsiveContainer width="100%" height={400}>
+    <AreaChart data={combinedEnergy}>
+      <defs>
+        <linearGradient id="actual" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.8} />
+          <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+        </linearGradient>
 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
+        <linearGradient id="predicted" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+        </linearGradient>
+      </defs>
 
-              <Area
-                type="monotone"
-                dataKey="energy"
-                stroke="#7c3aed"
-                strokeWidth={3}
-                fill="url(#actualEnergy)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="time" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
 
-        {/* Predicted Energy */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-lg font-semibold mb-4 text-blue-700">
-            Predicted Energy (kWh)
-          </h2>
+      {/* Actual Energy */}
+      <Area
+        type="monotone"
+        dataKey="energy"
+        stroke="#7c3aed"
+        fill="url(#actual)"
+        strokeWidth={3}
+      />
 
-          <ResponsiveContainer width="100%" height={350}>
-            <AreaChart data={mlPredictions}>
-              <defs>
-                <linearGradient id="predEnergy" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-
-              <Area
-                type="monotone"
-                dataKey="predicted_energy"
-                stroke="#f59e0b"
-                strokeWidth={3}
-                fill="url(#predEnergy)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Predicted Energy */}
+      <Area
+        type="monotone"
+        dataKey="predicted_energy"
+        stroke="#f59e0b"
+        fill="url(#predicted)"
+        strokeWidth={3}
+      />
+    </AreaChart>
+  </ResponsiveContainer>
+</div>
       </div>
 
       {/* Modal Detailed Graph */}

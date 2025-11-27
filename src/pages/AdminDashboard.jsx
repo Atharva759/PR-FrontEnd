@@ -18,6 +18,9 @@ import Lock from "../components/Lock";
 import Monitoring from "../components/Monitoring";
 import Logs from "../components/Logs";
 import ESP32Setup from "../components/ESP32Setup";
+import FaceDetection from "../components/FaceDetection"
+
+const CAMURL = import.meta.env.VITE_ESP_FACE;
 
 const AdminDashboard = () => {
   const [currentView, setCurrentView] = useState("analytics");
@@ -88,7 +91,7 @@ const AdminDashboard = () => {
           {currentView === "adminActions" && <Lock />}
           {currentView === "logs" && <Logs />}
           {currentView === "monitoring" && <Monitoring />}
-          {currentView === "liveFeed" && <p>Live feed</p>}
+          {currentView === "liveFeed" && <FaceDetection camUrl={CAMURL} />}
           {currentView === "help" && <p>Help & support</p>}
         </div>
       </div>

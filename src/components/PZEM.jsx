@@ -141,10 +141,10 @@ const PZEM = () => {
     const lastTime = actualSlice[actualSlice.length-1]?.time || new Date();
     const timeStepSec = 5;
 
-    // Extend future prediction (remaining points show only predicted)
+    // Extend future prediction
     const future = predictionSlice.slice(overlapCount).map((p, i) => ({
       time: new Date(lastTime.getTime() + (i+1) * timeStepSec*1000),
-      actual: null,                 // no real values here
+      actual: null,                 
       predicted: p.predicted_energy,
     }));
 
@@ -337,7 +337,7 @@ const PZEM = () => {
 
       {/* Actual vs Predicted Energy Charts */}
       <div className="mt-10 grid grid-cols-1 md:grid-cols-1 gap-6">
-        {/* Actual Energy */}
+        
         <div className="bg-white p-6 rounded-xl shadow-md mt-10">
           <h2 className="text-lg font-semibold mb-4 text-blue-700">
             Actual vs Predicted Energy

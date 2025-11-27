@@ -126,13 +126,13 @@ const PZEM = () => {
     }
   };
 
-  // remove slice to see more 
+  // remove slice to see more
   const combinedEnergy = history.slice(-10).map((item, index) => ({
-  time: item.time,
-  energy: item.energy*1000, // actual
-  predicted_energy: mlPredictions[index]
-    ? mlPredictions[index].predicted_energy 
-    : null,
+    time: item.time,
+    energy: item.energy * 1000, // actual
+    predicted_energy: mlPredictions[index]
+      ? mlPredictions[index].predicted_energy
+      : null,
   }));
 
   // Tariff update
@@ -319,53 +319,53 @@ const PZEM = () => {
       </div>
 
       {/* Actual vs Predicted Energy Charts */}
-      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="mt-10 grid grid-cols-1 md:grid-cols-1 gap-6">
         {/* Actual Energy */}
         <div className="bg-white p-6 rounded-xl shadow-md mt-10">
-  <h2 className="text-lg font-semibold mb-4 text-blue-700">
-    Actual vs Predicted Energy 
-  </h2>
+          <h2 className="text-lg font-semibold mb-4 text-blue-700">
+            Actual vs Predicted Energy
+          </h2>
 
-  <ResponsiveContainer width="100%" height={400}>
-    <AreaChart data={combinedEnergy}>
-      <defs>
-        <linearGradient id="actual" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.8} />
-          <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
-        </linearGradient>
+          <ResponsiveContainer width="100%" height={400}>
+            <AreaChart data={combinedEnergy}>
+              <defs>
+                <linearGradient id="actual" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                </linearGradient>
 
-        <linearGradient id="predicted" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-        </linearGradient>
-      </defs>
+                <linearGradient id="predicted" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="time" />
-      <YAxis />
-      <Tooltip />
-      <Legend />
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="time" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
 
-      {/* Actual Energy */}
-      <Area
-        type="monotone"
-        dataKey="energy"
-        stroke="#7c3aed"
-        fill="url(#actual)"
-        strokeWidth={3}
-      />
+              {/* Actual Energy */}
+              <Area
+                type="monotone"
+                dataKey="energy"
+                stroke="#7c3aed"
+                fill="url(#actual)"
+                strokeWidth={3}
+              />
 
-      {/* Predicted Energy */}
-      <Area
-        type="monotone"
-        dataKey="predicted_energy"
-        stroke="#f59e0b"
-        fill="url(#predicted)"
-        strokeWidth={3}
-      />
-    </AreaChart>
-  </ResponsiveContainer>
-</div>
+              {/* Predicted Energy */}
+              <Area
+                type="monotone"
+                dataKey="predicted_energy"
+                stroke="#f59e0b"
+                fill="url(#predicted)"
+                strokeWidth={3}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Modal Detailed Graph */}
@@ -430,9 +430,6 @@ const PZEM = () => {
   );
 };
 
-/* -------------------------------------------
-    GAUGE CARD  (COPY–PASTE READY)
--------------------------------------------- */
 const GaugeCard = ({ label, value, max, onInfoClick }) => {
   const safeVal = (() => {
     const n = Number(value);

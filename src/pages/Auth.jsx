@@ -8,13 +8,10 @@ import {
   onAuthStateChanged,
   signInWithPopup,
 } from "firebase/auth";
-import {
-  doc,
-  serverTimestamp,
-  runTransaction,
-} from "firebase/firestore";
+import { doc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
+import heroimage from "../assets/heroimage.png";
 
 const actionCodeSettings = {
   url: window.location.origin + "/auth",
@@ -51,7 +48,7 @@ const Auth = () => {
           name: displayName || "User",
           email: user.email,
           role: "employee",
-          provider
+          provider,
         });
       }
     });
@@ -73,7 +70,7 @@ const Auth = () => {
               loading: "Signing you in...",
               success: "Signed in successfully!",
               error: "Sign-in failed!",
-            }
+            },
           );
 
           const user = result.user;
@@ -119,7 +116,7 @@ const Auth = () => {
           loading: "Sending email link...",
           success: `Link sent to ${email}`,
           error: "Failed to send link",
-        }
+        },
       );
 
       localStorage.setItem("email", email);
@@ -137,18 +134,21 @@ const Auth = () => {
    */
   const handleGoogleLogin = async () => {
     try {
-      const result = await toast.promise(signInWithPopup(auth, googleProvider), {
-        loading: "Signing in with Google...",
-        success: "Google sign-in successful!",
-        error: "Google sign-in failed",
-      });
+      const result = await toast.promise(
+        signInWithPopup(auth, googleProvider),
+        {
+          loading: "Signing in with Google...",
+          success: "Google sign-in successful!",
+          error: "Google sign-in failed",
+        },
+      );
 
       const user = result.user;
 
       await createUserWithUniqueEmail(
         user,
         user.displayName || "Google User",
-        "google"
+        "google",
       );
 
       redirectToDashboard();
@@ -158,13 +158,39 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-200 via-blue-400 to-blue-600">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-blue-100">
-        <div className="flex mb-8 gap-4 bg-blue-200 rounded-full p-1">
+    <div
+  className="relative flex flex-col justify-start items-center min-h-screen px-4 pt-16"
+  style={{
+    backgroundImage: `url(${heroimage})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  }}
+>
+  {/* Overlay for dark tint */}
+  <div className="absolute inset-0 bg-slate-900/70 -z-10"></div>
+
+  {/* Hero Heading */}
+  <div className="text-center mt-16 mb-10 relative z-10 bg-slate-700 rounded-xl  p-2">
+    <h1 className=" px-4 py-2 rounded-lg text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2">
+      Welcome to Enerlytics Cloud
+    </h1>
+    <p className=" px-3 py-1 rounded-md text-lg text-white md:text-xl">
+      Enter your tenant dashboard and manage your IoT data effortlessly.
+    </p>
+  </div>
+
+
+      {/* Login Card */}
+      <div className="relative z-10 bg-slate-900/80 backdrop-blur-lg p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/20">
+        {/* Toggle SignUp / Login */}
+        <div className="flex mb-8 gap-2 bg-white/10 rounded-full p-1">
           <button
             onClick={() => setIsSignup(true)}
             className={`text-lg font-semibold px-6 py-2 w-1/2 rounded-full transition-all duration-300 cursor-pointer ${
-              isSignup ? "bg-blue-600 text-white shadow-md" : "text-blue-600"
+              isSignup
+                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg cursor-pointer"
+                : "text-white"
             }`}
           >
             Sign Up
@@ -172,13 +198,16 @@ const Auth = () => {
           <button
             onClick={() => setIsSignup(false)}
             className={`text-lg font-semibold px-6 py-2 w-1/2 rounded-full transition-all duration-300 cursor-pointer ${
-              !isSignup ? "bg-blue-600 text-white shadow-md" : "text-blue-600"
+              !isSignup
+                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg cursor-pointer"
+                : "text-white"
             }`}
           >
             Login
           </button>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleEmailSubmit} className="grid gap-5">
           {isSignup && (
             <input
@@ -186,7 +215,7 @@ const Auth = () => {
               placeholder="Enter your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="p-3 border-2 border-blue-200 rounded-lg bg-white"
+              className="p-3 border border-white/30 rounded-lg bg-slate-800/70 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
               required
             />
           )}
@@ -195,12 +224,13 @@ const Auth = () => {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="p-3 border-2 border-blue-200 rounded-lg bg-white"
+            className="p-3 border border-white/30 rounded-lg bg-slate-800/70 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
             required
           />
+
           <button
             type="submit"
-            className="p-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 active:bg-blue-800 cursor-pointer"
+            className="p-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-full shadow-lg hover:scale-105 transition transform cursor-pointer"
           >
             {isSignup ? "Send Sign-Up Link" : "Send Login Link"}
           </button>
@@ -208,17 +238,17 @@ const Auth = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-full border border-blue-300 hover:bg-blue-100 cursor-pointer"
+            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-full border border-white/30 text-white hover:bg-white/10 transition cursor-pointer"
           >
             <FcGoogle size={25} /> Continue with Google
           </button>
         </form>
 
-        <p className="text-center mt-6 text-sm">
+        <p className="text-center mt-6 text-sm text-gray-300">
           Are you an admin?{" "}
           <a
             href="/adminlogin"
-            className="text-blue-600 font-semibold hover:underline"
+            className="text-cyan-400 font-semibold hover:underline"
           >
             Go to Admin Login
           </a>

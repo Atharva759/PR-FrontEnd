@@ -12,6 +12,7 @@ import {
 import { getDoc, doc } from "firebase/firestore";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
+import heroimage from '../assets/heroimage.png';
 
 const actionCodeSettings = {
   url: window.location.origin + "/adminlogin", 
@@ -104,41 +105,58 @@ const AdminLogin = () => {
       console.error("Google admin login error:", error);
     }
   };
+return (
+  <div
+  className="relative flex flex-col justify-start items-center min-h-screen px-4 pt-16"
+  style={{
+    backgroundImage: `url(${heroimage})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  }}
+>
+  {/* Dark Overlay */}
+  <div className="absolute inset-0 bg-slate-900/70 -z-10"></div>
 
-  return (
-    <div className="flex justify-center items-center min-h-screen ">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 border border-red-100">
-        <h2 className="text-2xl font-bold text-center text-red-600 mb-6">
-          Admin Login
-        </h2>
+  {/* Hero Heading */}
+  <div className="text-center mt-16 mb-10 relative z-10 bg-slate-600 rounded-xl p-3">
+    <h1 className=" px-4 py-2 rounded-lg bg-slate-800/70 text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
+      System Administrator Login
+    </h1>
+    <p className=" px-3 py-1 rounded-md  text-gray-200 text-lg md:text-xl">
+      Access full platform controls and manage all tenants securely.
+    </p>
+  </div>
 
-        <form onSubmit={handleEmailSubmit} className="grid gap-5">
-          <input
-            type="email"
-            placeholder="Enter admin email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="p-3 border-2 border-red-200 rounded-lg bg-white"
-            required
-          />
-          <button
-            type="submit"
-            className="p-3 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 active:bg-red-800 cursor-pointer"
-          >
-            Send Admin Login Link
-          </button>
+  {/* Admin Login Card */}
+  <div className="relative z-10 bg-slate-900/80 backdrop-blur-lg p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/20">
+    <form onSubmit={handleEmailSubmit} className="grid gap-5">
+      <input
+        type="email"
+        placeholder="Enter admin email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="p-3 border border-white/30 rounded-lg bg-slate-800/70 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+        required
+      />
+      <button
+        type="submit"
+        className="p-3 bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-semibold rounded-full shadow-lg hover:scale-105 transition transform cursor-pointer"
+      >
+        Send Admin Login Link
+      </button>
 
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="flex justify-center items-center gap-2 p-3 font-semibold rounded-full border border-red-300 hover:bg-red-100 cursor-pointer"
-          >
-            <FcGoogle size={25} /> Continue with Google
-          </button>
-        </form>
-      </div>
-    </div>
-  );
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        className="flex justify-center items-center gap-2 p-3 font-semibold rounded-full border border-white/30 text-white hover:bg-white/10 transition cursor-pointer"
+      >
+        <FcGoogle size={25} /> Continue with Google
+      </button>
+    </form>
+  </div>
+</div>
+);
 };
 
 export default AdminLogin;

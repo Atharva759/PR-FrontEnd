@@ -24,7 +24,7 @@ const Auth = () => {
   const [name, setName] = useState("");
   const navigate = useNavigate();
 
-  const redirectToDashboard = () => navigate("/dashboard");
+  const redirectToDashboard = () => navigate("/tenant-dashboard");
 
   /**
    * Create user document with duplicate email check

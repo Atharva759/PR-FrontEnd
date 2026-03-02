@@ -53,12 +53,7 @@ const Home = () => {
             >
               Get Started
             </Link>
-            <Link
-              to="#functionalities"
-              className="px-8 py-4 rounded-full bg-white/20 text-white font-semibold backdrop-blur-md shadow hover:scale-105 transition transform"
-            >
-              Learn More
-            </Link>
+            
           </div>
         </div>
       </section>

@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
-import UserDashboard from "./pages/UserDashboard";
+import TenantDashboard from "./pages/TenantDashboard";
 import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
 import AdminLogin from "./pages/AdminLogin";
@@ -21,10 +21,10 @@ function App() {
           <Route path="/auth" element={<Auth />} />
 
           <Route
-            path="/dashboard"
+            path="/tenant-dashboard"
             element={
               <PrivateRoute>
-                <UserDashboard />
+                <TenantDashboard />
               </PrivateRoute>
             }
           />

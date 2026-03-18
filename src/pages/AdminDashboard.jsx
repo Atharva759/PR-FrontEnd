@@ -17,9 +17,11 @@ import FirebaseAnalytics from "../components/FirebaseAnalytics";
 import Lock from "../components/Lock";
 import Monitoring from "../components/Monitoring";
 import Logs from "../components/Logs";
-import ESP32Setup from "../components/ESP32Setup";
+import TenantManagement from "../components/TenantManagement";
 import FaceDetection from "../components/FaceDetection";
 import Support from "../components/Support";
+import DeviceManagement from "../components/DeviceManagement"
+
 
 const CAMURL = import.meta.env.VITE_ESP_FACE;
 
@@ -30,14 +32,14 @@ const AdminDashboard = () => {
     { name: "Analytics", icon: <MdAnalytics size={20} />, view: "analytics" },
     { name: "Manage Users", icon: <MdPeople size={20} />, view: "manage" },
     {
-      name: "Admin Actions",
-      icon: <MdAdminPanelSettings size={20} />,
-      view: "adminActions",
+      name: "Tenant Management",
+      icon: <MdSettings size={20} />,
+      view: "tenantmanage",
     },
     {
-      name: "ESP32 Configuration",
-      icon: <MdSettings size={20} />,
-      view: "config",
+      name: "Device Management",
+      icon: <MdAdminPanelSettings size={20} />,
+      view: "devicemanage",
     },
     {
       name: "System Monitoring",
@@ -88,8 +90,8 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-2xl shadow-lg p-6 flex-1 overflow-y-auto">
           {currentView === "analytics" && <FirebaseAnalytics />}
           {currentView === "manage" && <ManageUsers />}
-          {currentView === "config" && <ESP32Setup />}
-          {currentView === "adminActions" && <Lock />}
+          {currentView === "tenantmanage" && <TenantManagement />}
+          {currentView === "devicemanage" && <DeviceManagement role="super_admin"/>} 
           {currentView === "logs" && <Logs />}
           {currentView === "monitoring" && <Monitoring />}
           {currentView === "liveFeed" && <FaceDetection camUrl={CAMURL}  />}

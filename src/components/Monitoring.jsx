@@ -1,8 +1,4 @@
 import { useState, useEffect } from "react";
-import { db, database, storage } from "../../firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { ref as dbRef, onValue } from "firebase/database";
-import { ref as storageRef, listAll, getMetadata } from "firebase/storage";
 import toast from "react-hot-toast";
 import {
   Database,
@@ -14,17 +10,24 @@ import {
   Activity,
 } from "lucide-react";
 
-const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import {
+  getBackendHealth,
+  getFrontendHealth,
+  getDevicesCount,
+  getTenantsCount,
+  getSystemStats,
+} from "../api/adminApi";
 
 const Monitoring = () => {
   const [userCount, setUserCount] = useState(0);
   const [realtimeConnections, setRealtimeConnections] = useState(0);
-  const [storageUsage, setStorageUsage] = useState("0 MB");
+  const [storageUsage, setStorageUsage] = useState("N/A");
   const [storageStatus, setStorageStatus] = useState("Checking");
   const [frontendStatus, setFrontendStatus] = useState("Checking");
   const [backendHealth, setBackendHealth] = useState("Checking");
   const [connectedDevices, setConnectedDevices] = useState(0);
+  const [tenantCount, setTenantCount] = useState(0);
+
   const [timestamps, setTimestamps] = useState({});
 
   const updateTimestamp = (key) => {
@@ -35,79 +38,43 @@ const Monitoring = () => {
   };
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchStats = async () => {
       try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        setUserCount(usersSnap.size);
+        const stats = await getSystemStats();
+
+        setUserCount(stats.totalUsers || 0);
+        setConnectedDevices(stats.totalDevices || 0);
+
+        setBackendHealth(
+          stats.backendStatus === "running" ? "Healthy" : "Unhealthy"
+        );
+
+        setFrontendStatus(
+          stats.frontendStatus === "running" ? "Healthy" : "Unhealthy"
+        );
+
         updateTimestamp("users");
+        updateTimestamp("backend");
+        updateTimestamp("frontend");
+
+        const tenants = await getTenantsCount();
+        setTenantCount(tenants.totalTenants || 0);
+
+        const devices = await getDevicesCount();
+        setRealtimeConnections(devices.totalDevices || 0);
+
+        updateTimestamp("realtime");
       } catch (err) {
-        toast.error("Failed to fetch users");
-      }
-    };
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    const connectionsRef = dbRef(database, ".info/connected");
-    const unsubscribe = onValue(connectionsRef, (snapshot) => {
-      setRealtimeConnections(snapshot.val() ? 1 : 0);
-      updateTimestamp("realtime");
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const checkFrontend = async () => {
-      try {
-        const res = await fetch(FRONTEND_URL, { method: "HEAD" });
-        setFrontendStatus(res.ok ? "Healthy" : "Unhealthy");
-      } catch {
-        setFrontendStatus("Unhealthy");
-      }
-      updateTimestamp("frontend");
-    };
-    checkFrontend();
-    const interval = setInterval(checkFrontend, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const fetchStorageUsage = async () => {
-      try {
-        const rootRef = storageRef(storage, "/");
-        const list = await listAll(rootRef);
-        let totalBytes = 0;
-        for (const itemRef of list.items) {
-          const meta = await getMetadata(itemRef);
-          totalBytes += meta.size || 0;
-        }
-        const sizeMB = (totalBytes / (1024 * 1024)).toFixed(2);
-        setStorageUsage(`${sizeMB} MB`);
-        setStorageStatus("Healthy");
-      } catch {
-        setStorageUsage("-");
-        setStorageStatus("Disconnected");
-      }
-      updateTimestamp("storage");
-    };
-    fetchStorageUsage();
-  }, []);
-
-  useEffect(() => {
-    const fetchBackendHealth = async () => {
-      try {
-        const res = await fetch(`${BACKEND_URL}/health`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        setBackendHealth(data.status === "ok" ? "Healthy" : "Unhealthy");
-        setConnectedDevices(data.connectedDevices || 0);
-      } catch {
+        console.error(err);
+        toast.error("Failed to fetch system stats");
         setBackendHealth("Disconnected");
       }
-      updateTimestamp("backend");
     };
-    fetchBackendHealth();
-    const interval = setInterval(fetchBackendHealth, 10000);
+
+    fetchStats();
+
+    const interval = setInterval(fetchStats, 10000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -118,6 +85,7 @@ const Monitoring = () => {
       Disconnected: "bg-red-100 text-red-700",
       Checking: "bg-gray-100 text-gray-700",
     };
+
     return (
       <span
         className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -137,18 +105,42 @@ const Monitoring = () => {
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
         <Card
-          title="Firestore Users"
+          title="Total Users"
           icon={<Users className="w-6 h-6 text-indigo-600" />}
           value={userCount}
           footer={`Last Updated: ${timestamps.users || "..."}`}
         />
+
         <Card
-          title="Realtime DB Connection"
+          title="Total Tenants"
           icon={<Database className="w-6 h-6 text-blue-600" />}
-          value={realtimeConnections}
+          value={tenantCount}
           footer={`Last Updated: ${timestamps.realtime || "..."}`}
         />
+
+        <Card
+          title="Connected Devices"
+          icon={<Wifi className="w-6 h-6 text-cyan-600" />}
+          value={connectedDevices}
+          footer={`Last Updated: ${timestamps.backend || "..."}`}
+        />
+
+        <Card
+          title="Frontend Status"
+          icon={<Globe className="w-6 h-6 text-green-600" />}
+          value={<StatusBadge status={frontendStatus} />}
+          footer={`Last Updated: ${timestamps.frontend || "..."}`}
+        />
+
+        <Card
+          title="Backend Health"
+          icon={<Server className="w-6 h-6 text-rose-600" />}
+          value={<StatusBadge status={backendHealth} />}
+          footer={`Last Updated: ${timestamps.backend || "..."}`}
+        />
+
         <Card
           title="Storage Usage"
           icon={<HardDrive className="w-6 h-6 text-amber-600" />}
@@ -158,25 +150,7 @@ const Monitoring = () => {
               <StatusBadge status={storageStatus} />
             </div>
           }
-          footer={`Last Updated: ${timestamps.storage || "..."}`}
-        />
-        <Card
-          title="Frontend Status"
-          icon={<Globe className="w-6 h-6 text-green-600" />}
-          value={<StatusBadge status={frontendStatus} />}
-          footer={`Last Updated: ${timestamps.frontend || "..."}`}
-        />
-        <Card
-          title="Backend Health"
-          icon={<Server className="w-6 h-6 text-rose-600" />}
-          value={<StatusBadge status={backendHealth} />}
-          footer={`Last Updated: ${timestamps.backend || "..."}`}
-        />
-        <Card
-          title="Connected Devices"
-          icon={<Wifi className="w-6 h-6 text-cyan-600" />}
-          value={connectedDevices}
-          footer={`Last Updated: ${timestamps.backend || "..."}`}
+          footer="Storage metrics coming from backend"
         />
       </div>
     </div>

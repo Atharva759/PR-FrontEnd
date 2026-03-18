@@ -1,201 +1,286 @@
 import { useEffect, useState } from "react";
+import { FiEdit, FiTrash, FiCheck, FiX } from "react-icons/fi";
+
 import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  onSnapshot,
-} from "firebase/firestore";
-import { db } from "../../firebase";
-import { FiEdit, FiTrash, FiPlus, FiCheck, FiX } from "react-icons/fi";
+  getAllUsers,
+  updateUserRole,
+  updateUserEmail,
+  deleteUser
+} from "../api/adminApi";
 
-const UserForm = ({ form, setForm, onSubmit, editId, onCancel }) => (
-  <form
-    onSubmit={onSubmit}
-    className="flex flex-col md:flex-row gap-3 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm"
-  >
-    <input
-      type="text"
-      placeholder="Name"
-      value={form.name}
-      onChange={(e) => setForm({ ...form, name: e.target.value })}
-      className="border border-gray-300 p-2 rounded-lg flex-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-      required
-    />
-    <input
-      type="email"
-      placeholder="Email"
-      value={form.email}
-      onChange={(e) => setForm({ ...form, email: e.target.value })}
-      className="border border-gray-300 p-2 rounded-lg flex-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-      required
-    />
-    <select
-      value={form.role}
-      onChange={(e) => setForm({ ...form, role: e.target.value })}
-      className="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-    >
-      <option value="employee">Employee</option>
-      <option value="admin">Admin</option>
-    </select>
-    <button
-      type="submit"
-      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition cursor-pointer flex items-center gap-2"
-    >
-      {editId ? (
-        <>
-          <FiCheck /> Update
-        </>
-      ) : (
-        <>
-          <FiPlus /> Add
-        </>
+
+const UserRow = ({ user, onEdit, onDelete, onRoleChange, showTenant }) => {
+
+  const roleColor =
+    user.role === "tenant_admin"
+      ? "bg-green-100 text-green-700"
+      : "bg-red-100 text-red-700";
+
+  const roleLabel =
+    user.role === "tenant_admin"
+      ? "Tenant Admin"
+      : "Super Admin";
+
+  return (
+    <tr className="hover:bg-blue-50">
+
+      <td className="p-3 border-b">{user.name || "N/A"}</td>
+
+      <td className="p-3 border-b">{user.email}</td>
+
+      {showTenant && (
+        <td className="p-3 border-b">{user.tenantId || "N/A"}</td>
       )}
-    </button>
-    {editId && (
-      <button
-        type="button"
-        onClick={onCancel}
-        className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition cursor-pointer flex items-center gap-2"
-      >
-        <FiX /> Cancel
-      </button>
-    )}
-  </form>
-);
 
-const UserRow = ({ user, onEdit, onDelete, onRoleChange }) => (
-  <tr className="hover:bg-blue-50">
-    <td className="p-3 border-b">{user.name}</td>
-    <td className="p-3 border-b">{user.email}</td>
-    <td className="p-3 border-b">
-      <select
-        value={user.role}
-        onChange={(e) => onRoleChange(user.id, e.target.value)}
-        className="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-      >
-        <option value="employee">Employee</option>
-        <option value="admin">Admin</option>
-      </select>
-    </td>
-    <td className="p-3 border-b whitespace-nowrap">
-      <div className="inline-flex gap-2">
-        <button
-          onClick={() => onEdit(user)}
-          className="px-3 py-1 rounded-lg bg-green-500 text-white hover:bg-green-600 cursor-pointer flex items-center gap-1"
-        >
-          <FiEdit /> Edit
-        </button>
-        <button
-          onClick={() => onDelete(user.id)}
-          className="px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 cursor-pointer flex items-center gap-1"
-        >
-          <FiTrash /> Delete
-        </button>
-      </div>
-    </td>
-  </tr>
-);
+      <td className="p-3 border-b">
+
+        <div className="flex items-center gap-3">
+
+          {/* ROLE BADGE */}
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleColor}`}>
+            {roleLabel}
+          </span>
+
+          {/* CHANGE ROLE */}
+          <select
+            value="Change Role"
+            onChange={(e) => onRoleChange(user.uid, e.target.value)}
+            className="border border-gray-300 p-1 rounded-lg text-sm"
+          >
+            <option>Change Role</option>
+            <option value="tenant_admin">Tenant Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
+
+        </div>
+
+      </td>
+
+      <td className="p-3 border-b">
+
+        <div className="flex gap-2">
+
+          <button
+            onClick={() => onEdit(user)}
+            className="px-3 py-1 rounded-lg bg-green-500 text-white flex items-center gap-1"
+          >
+            <FiEdit /> Edit
+          </button>
+
+          <button
+            onClick={() => onDelete(user.uid)}
+            className="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-1"
+          >
+            <FiTrash /> Delete
+          </button>
+
+        </div>
+
+      </td>
+
+    </tr>
+  );
+};
+
 
 const ManageUsers = () => {
+
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ name: "", email: "", role: "employee" });
-  const [editId, setEditId] = useState(null);
+  const [view, setView] = useState("tenant");
+
+  const [editUser, setEditUser] = useState(null);
+  const [email, setEmail] = useState("");
+
+  const loadUsers = async () => {
+    try {
+      const data = await getAllUsers();
+      setUsers(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, "users"),
-      (snapshot) => {
-        setUsers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-      },
-      (error) => console.error("Error fetching users:", error)
-    );
-
-    return () => unsub();
+    loadUsers();
   }, []);
 
-  const resetForm = () => {
-    setForm({ name: "", email: "", role: "employee" });
-    setEditId(null);
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleRoleChange = async (uid, role) => {
     try {
-      if (editId) {
-        await updateDoc(doc(db, "users", editId), form);
-      } else {
-        await addDoc(collection(db, "users"), form);
-      }
-      resetForm();
+      await updateUserRole(uid, role);
+      loadUsers();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleRoleChange = async (id, role) => {
+
+  const handleDelete = async (uid) => {
     try {
-      await updateDoc(doc(db, "users", id), { role });
+      await deleteUser(uid);
+      loadUsers();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await deleteDoc(doc(db, "users", id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleEdit = (user) => {
-    setEditId(user.id);
-    setForm({ name: user.name, email: user.email, role: user.role });
+    setEditUser(user);
+    setEmail(user.email);
   };
+
+
+  const handleEmailUpdate = async () => {
+    try {
+      await updateUserEmail(editUser.uid, email);
+      setEditUser(null);
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
+  const filteredUsers = users.filter((u) =>
+    view === "tenant"
+      ? u.role === "tenant_admin"
+      : u.role === "super_admin"
+  );
+
 
   return (
     <div className="flex flex-col gap-6">
-      <UserForm
-        form={form}
-        setForm={setForm}
-        onSubmit={handleSubmit}
-        editId={editId}
-        onCancel={resetForm}
-      />
+
+      {/* VIEW TOGGLE */}
+
+      <div className="flex gap-4">
+
+        <button
+          onClick={() => setView("tenant")}
+          className={`px-4 py-2 rounded-lg ${
+            view === "tenant"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Tenant Admins
+        </button>
+
+        <button
+          onClick={() => setView("admin")}
+          className={`px-4 py-2 rounded-lg ${
+            view === "admin"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Super Admins
+        </button>
+
+      </div>
+
+
+      {/* EDIT EMAIL MODAL */}
+
+      {editUser && (
+
+        <div className="bg-white border p-4 rounded-xl shadow w-fit">
+
+          <div className="flex gap-2 items-center">
+
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="border p-2 rounded-lg"
+            />
+
+            <button
+              onClick={handleEmailUpdate}
+              className="bg-green-600 text-white px-3 py-2 rounded-lg flex items-center gap-1"
+            >
+              <FiCheck /> Save
+            </button>
+
+            <button
+              onClick={() => setEditUser(null)}
+              className="bg-gray-400 text-white px-3 py-2 rounded-lg flex items-center gap-1"
+            >
+              <FiX /> Cancel
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* USERS TABLE */}
 
       <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+
         <table className="w-full border-collapse text-left">
-          <thead className="bg-blue-100 rounded-t-2xl">
+
+          <thead className="bg-blue-100">
+
             <tr>
+
               <th className="p-3 border-b">Name</th>
+
               <th className="p-3 border-b">Email</th>
+
+              {view === "tenant" && (
+                <th className="p-3 border-b">Tenant ID</th>
+              )}
+
               <th className="p-3 border-b">Role</th>
+
               <th className="p-3 border-b">Actions</th>
+
             </tr>
+
           </thead>
+
           <tbody>
-            {users.length > 0 ? (
-              users.map((user) => (
+
+            {filteredUsers.length > 0 ? (
+
+              filteredUsers.map((user) => (
+
                 <UserRow
-                  key={user.id}
+                  key={user.uid}
                   user={user}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onRoleChange={handleRoleChange}
+                  showTenant={view === "tenant"}
                 />
+
               ))
+
             ) : (
+
               <tr>
-                <td colSpan={4} className="p-3 text-center text-gray-500">
+
+                <td
+                  colSpan={view === "tenant" ? 5 : 4}
+                  className="p-3 text-center text-gray-500"
+                >
                   No users found
                 </td>
+
               </tr>
+
             )}
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
   );
 };

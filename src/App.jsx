@@ -10,6 +10,7 @@ import AdminLogin from "./pages/AdminLogin";
 import ManageUsers from "./components/ManageUsers";
 import SensorDashboard from "./components/SensorDashboard";
 import PZEM from "./components/PZEM";
+import DevicesPage from "./components/DevicesPage";
 
 function App() {
   return (
@@ -25,9 +26,11 @@ function App() {
             element={
               <PrivateRoute>
                 <TenantDashboard />
+                
               </PrivateRoute>
             }
           />
+          <Route path="/device/:mac" element={<DevicesPage />} />
           <Route path="/adminlogin" element={<AdminLogin />} />
           <Route
             path="/admindashboard"

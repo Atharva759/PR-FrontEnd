@@ -247,6 +247,8 @@ const TenantDashboard = () => {
       </div>
 
       {/* SIDEBAR */}
+      <div className="md:w-64 md:flex-shrink-0">
+
       <div
         className={`
           fixed md:static top-0 left-0 h-full z-50
@@ -255,7 +257,7 @@ const TenantDashboard = () => {
           transform transition-transform duration-300
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
-        `}
+          `}
       >
         <div>
           {/* MOBILE CLOSE */}
@@ -313,6 +315,7 @@ const TenantDashboard = () => {
         >
           <TbLogout size={20} /> Logout
         </button>
+      </div>
       </div>
 
       {/* OVERLAY */}
@@ -435,7 +438,8 @@ const TenantDashboard = () => {
           </div>
         )}
       </div>
-    </div>
+                </div>
+    
   );
 };
 

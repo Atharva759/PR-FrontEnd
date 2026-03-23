@@ -65,3 +65,16 @@ export const deleteUser = async (uid) => {
 
   return res.data;
 };
+
+// create admin 
+export const createAdmin = async (data) => {
+  try {
+    if (data.role === "super_admin") {
+      return await axios.post(`${API_BASE}/create-super-admin`, data);
+    } else {
+      return await axios.post(`${API_BASE}/create-tenant-admin`, data);
+    }
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};

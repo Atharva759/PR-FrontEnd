@@ -21,7 +21,7 @@ import TenantManagement from "../components/TenantManagement";
 import FaceDetection from "../components/FaceDetection";
 import Support from "../components/Support";
 import DeviceManagement from "../components/DeviceManagement"
-
+import AdminActions from "../components/AdminActions";
 
 const CAMURL = import.meta.env.VITE_ESP_FACE;
 
@@ -46,6 +46,7 @@ const AdminDashboard = () => {
       icon: <MdMonitor size={20} />,
       view: "monitoring",
     },
+    { name: "Admin Actions", icon: <MdAdminPanelSettings size={20} />, view: "adminactions" },
     { name: "Logs", icon: <MdAssignment size={20} />, view: "logs" },
     { name: "Live Feed", icon: <MdLiveTv size={20} />, view: "liveFeed" },
     { name: "Help Support", icon: <MdHelpOutline size={20} />, view: "help" },
@@ -91,8 +92,9 @@ const AdminDashboard = () => {
           {currentView === "analytics" && <FirebaseAnalytics />}
           {currentView === "manage" && <ManageUsers />}
           {currentView === "tenantmanage" && <TenantManagement />}
-          {currentView === "devicemanage" && <DeviceManagement role="super_admin"/>} 
+          {currentView === "devicemanage" && <DeviceManagement role="super_admin"/>}
           {currentView === "logs" && <Logs />}
+          {currentView === "adminactions" && <AdminActions role="super_admin"/>} 
           {currentView === "monitoring" && <Monitoring />}
           {currentView === "liveFeed" && <FaceDetection camUrl={CAMURL}  />}
           {currentView === "help" && <Support/> }

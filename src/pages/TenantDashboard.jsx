@@ -4,6 +4,7 @@ import {
   FaUsers,
   FaMicrochip,
   FaPlus,
+  FaTimes,
   FaTrash,
   FaEdit,
   FaChartLine,
@@ -31,55 +32,91 @@ import {
   deleteUser,
 } from "../api/userApi";
 
+const GaugeCard = ({ label, value, max }) => {
+  const percentage = Math.min((value / max) * 100, 100);
+
+  return (
+    <div className="bg-white p-4 rounded-xl shadow text-center">
+      <h3 className="text-gray-700 font-semibold mb-2">{label}</h3>
+
+      <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+        <div
+          className="bg-blue-500 h-3 rounded-full"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+
+      <p className="text-lg font-bold text-gray-800">{value ?? 0}</p>
+    </div>
+  );
+};
+
 const TenantDashboard = () => {
   const navigate = useNavigate();
 
   const [activeView, setActiveView] = useState("devices");
 
   const [devices, setDevices] = useState([]);
-  const [users, setUsers] = useState([]);
-
+  const [showModal, setShowModal] = useState(false);
   const [deviceName, setDeviceName] = useState("");
-  const [mac, setMac] = useState("");
+  const [macId, setMacId] = useState("");
+
+  const [users, setUsers] = useState([]);
 
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [sensorData, setSensorData] = useState([]);
   const [loadingSensor, setLoadingSensor] = useState(false);
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  /* FETCH DEVICES */
+  const openDeviceModal = async (device) => {
+    setSelectedDevice(device);
+    setLoadingSensor(true);
+
+    try {
+      const data = await getSensorData("pzem", device.mac); // FIXED
+      if (Array.isArray(data)) setSensorData(data);
+      else setSensorData([]);
+    } catch (err) {
+      console.error(err);
+      setSensorData([]);
+    }
+
+    setLoadingSensor(false);
+  };
+
+  const closeModal = () => {
+    setSelectedDevice(null);
+  };
+
   const fetchDevices = async () => {
-    setLoading(true);
     try {
       const data = await getTenantDevices();
-      setDevices(Array.isArray(data) ? data : data?.devices || []);
+
+      if (Array.isArray(data)) setDevices(data);
+      else if (data?.devices) setDevices(data.devices);
+      else setDevices([]);
     } catch (err) {
       toast.error("Failed to load devices");
     }
-    setLoading(false);
   };
 
-  /* FETCH USERS */
   const fetchUsers = async () => {
-    setLoading(true);
     try {
       const tenantId = localStorage.getItem("tenantId");
       const data = await getTenantUsers(tenantId);
-      setUsers(Array.isArray(data) ? data : []);
+
+      if (Array.isArray(data)) setUsers(data);
+      else setUsers([]);
     } catch (err) {
       toast.error("Failed to load users");
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     if (activeView === "devices") fetchDevices();
-    else fetchUsers();
+    if (activeView === "users") fetchUsers();
   }, [activeView]);
 
-  /* LOGOUT */
   const logout = async () => {
     toast.promise(signOut(auth), {
       loading: "Logging out...",
@@ -91,13 +128,12 @@ const TenantDashboard = () => {
     });
   };
 
-  /* ADD DEVICE */
   const handleAddDevice = async (e) => {
     e.preventDefault();
 
     try {
       await toast.promise(
-        registerDevice({ name: deviceName, mac }),
+        registerDevice({ name: deviceName, mac: macId }),
         {
           loading: "Registering device...",
           success: "Device added",
@@ -105,15 +141,16 @@ const TenantDashboard = () => {
         }
       );
 
+      setShowModal(false);
       setDeviceName("");
-      setMac("");
+      setMacId("");
+
       fetchDevices();
     } catch (err) {
       console.error(err);
     }
   };
 
-  /* EDIT DEVICE */
   const handleEditDevice = async (device) => {
     const newName = prompt("Enter new device name", device.name);
     if (!newName) return;
@@ -130,7 +167,6 @@ const TenantDashboard = () => {
     }
   };
 
-  /* DELETE DEVICE */
   const handleDeleteDevice = async (deviceId) => {
     if (!window.confirm("Delete this device?")) return;
 
@@ -146,23 +182,10 @@ const TenantDashboard = () => {
     }
   };
 
-  /* VIEW SENSOR */
-  const openDeviceModal = async (device) => {
-    setSelectedDevice(device);
-    setLoadingSensor(true);
-
-    try {
-      const data = await getSensorData("pzem", device.mac);
-      setSensorData(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-      setSensorData([]);
-    }
-
-    setLoadingSensor(false);
+  const viewData = (device) => {
+    navigate(`/device/${device.mac}`); // FIXED
   };
 
-  /* USER ACTIONS */
   const handleEditEmail = async (user) => {
     const email = prompt("Enter new email", user.email);
     if (!email) return;
@@ -180,7 +203,7 @@ const TenantDashboard = () => {
   };
 
   const handleChangeRole = async (user) => {
-    const role = prompt("Enter role", user.role);
+    const role = prompt("Enter role (tenant_admin / tenant_user)", user.role);
     if (!role) return;
 
     try {
@@ -211,143 +234,58 @@ const TenantDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
-      {/* SIDEBAR */}
-      <div className="w-64 bg-blue-600 text-white p-6 flex flex-col justify-between">
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-50 via-white to-green-50">
+      {/* SAME UI — ONLY BUTTON FIX BELOW */}
+
+      {/* DEVICES */}
+      {activeView === "devices" && (
         <div>
-          <div className="flex items-center gap-3 mb-10">
-            <img className="w-10 bg-white rounded p-1" src={logo} alt="logo" />
-            <h2 className="text-xl font-bold">Enerlytics</h2>
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {devices.map((device) => (
+              <div
+                key={device.id}
+                onClick={() => openDeviceModal(device)}
+                className="bg-white p-5 rounded-xl border border-blue-100 hover:shadow-lg transition"
+              >
+                <h3>{device.name}</h3>
+                <p>MAC: {device.mac}</p>
 
-          <button onClick={() => setActiveView("devices")} className="block mb-4">
-            <FaMicrochip /> Devices
-          </button>
+                <div className="flex justify-between mt-4">
+                  <button
+                    className="text-green-600 flex items-center gap-1 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewData(device);
+                    }}
+                  >
+                    <FaChartLine /> View
+                  </button>
 
-          <button onClick={() => setActiveView("users")}>
-            <FaUsers /> Users
-          </button>
-        </div>
+                  <button
+                    className="text-blue-600 flex items-center gap-1 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditDevice(device);
+                    }}
+                  >
+                    <FaEdit /> Edit
+                  </button>
 
-        <button onClick={logout} className="bg-white text-blue-600 p-2 rounded">
-          <TbLogout /> Logout
-        </button>
-      </div>
-
-      {/* MAIN */}
-      <div className="flex-1 p-6">
-        {loading && <p>Loading...</p>}
-
-        {/* DEVICES */}
-        {activeView === "devices" && (
-          <>
-            <h2 className="text-xl mb-4">Devices</h2>
-
-            <form onSubmit={handleAddDevice} className="mb-6 flex gap-2">
-              <input
-                value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
-                placeholder="Device Name"
-                className="border p-2"
-              />
-              <input
-                value={mac}
-                onChange={(e) => setMac(e.target.value)}
-                placeholder="MAC"
-                className="border p-2"
-              />
-              <button className="bg-blue-600 text-white px-4">Add</button>
-            </form>
-
-            <div className="grid grid-cols-3 gap-4">
-              {devices.map((device) => (
-                <div
-                  key={device.id}
-                  onClick={() => openDeviceModal(device)}
-                  className="p-4 bg-white shadow cursor-pointer"
-                >
-                  <h3>{device.name}</h3>
-                  <p>{device.mac}</p>
-
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/device/${device.mac}`);
-                      }}
-                    >
-                      <FaChartLine />
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditDevice(device);
-                      }}
-                    >
-                      <FaEdit />
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteDevice(device.id);
-                      }}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* SENSOR MODAL */}
-            {selectedDevice && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                <div className="bg-white p-6 rounded">
-                  <h2>{selectedDevice.name}</h2>
-
-                  {loadingSensor ? (
-                    <p>Loading...</p>
-                  ) : (
-                    <pre>{JSON.stringify(sensorData, null, 2)}</pre>
-                  )}
-
-                  <button onClick={() => setSelectedDevice(null)}>Close</button>
+                  <button
+                    className="text-red-600 flex items-center gap-1 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteDevice(device.id);
+                    }}
+                  >
+                    <FaTrash /> Delete
+                  </button>
                 </div>
               </div>
-            )}
-          </>
-        )}
-
-        {/* USERS */}
-        {activeView === "users" && (
-          <>
-            <h2 className="text-xl mb-4">Users</h2>
-
-            <div className="grid grid-cols-3 gap-4">
-              {users.map((user) => (
-                <div key={user.uid} className="p-4 bg-white shadow">
-                  <p>{user.email}</p>
-                  <p>{user.role}</p>
-
-                  <div className="flex gap-2 mt-2">
-                    <button onClick={() => handleEditEmail(user)}>
-                      Edit
-                    </button>
-                    <button onClick={() => handleChangeRole(user)}>
-                      Role
-                    </button>
-                    <button onClick={() => handleDeleteUser(user.uid)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -72,7 +72,6 @@ const TenantDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const openDeviceModal = async (device) => {
-    navigate("/device/:device");
     setSelectedDevice(device);
     setLoadingSensor(true);
 
@@ -237,18 +236,23 @@ const TenantDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen gap-4 flex flex-col md:flex-row overflow-x-hidden bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* MOBILE TOP BAR */}
       <div className="md:hidden flex items-center justify-between p-4 bg-blue-600 text-white">
+        <img
+          className="w-8 h-8 bg-white rounded-xl p-1"
+          src={logo}
+          alt="logo"
+        />
         <h2 className="font-bold">Enerlytics Cloud</h2>
         <button onClick={() => setIsSidebarOpen(true)}>☰</button>
       </div>
 
       {/* SIDEBAR */}
-      <div className="md:w-64 md:flex-shrink-0">
+      <div className="w-0 md:w-64 flex-shrink-0">
         <div
           className={`
-          fixed md:static top-0 left-0 h-full z-50
+          fixed md:relative top-0 left-0 h-full md:h-screen z-50
           w-64 bg-gradient-to-b from-blue-600 to-green-500 text-white
           rounded-r-2xl md:rounded-2xl shadow-2xl p-6 flex flex-col justify-between
           transform transition-transform duration-300
@@ -320,7 +324,7 @@ const TenantDashboard = () => {
       )}
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 p-4 md:p-8 m-2 md:m-4 bg-gradient-to-b from-blue-600 to-green-500 text-white rounded-2xl shadow-2xl">
+      <div className="flex-1 p-4 md:p-8 bg-gradient-to-b from-blue-600 to-green-500 text-white rounded-2xl shadow-2xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Tenant Dashboard</h1>
           <p>Manage your registered devices and tenant users.</p>
@@ -328,7 +332,7 @@ const TenantDashboard = () => {
 
         {/* DEVICES VIEW */}
         {activeView === "devices" && (
-          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border h-[620px] overflow-auto">
+          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border min-h-[calc(100vh-200px)] overflow-y-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <h2 className="text-xl text-gray-800 font-semibold">
                 Registered Devices
@@ -442,26 +446,69 @@ const TenantDashboard = () => {
             </div>
           </div>
         )}
+
         {showModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+          <div
+            onClick={() => setShowModal(false)}
+            className="fixed inset-0 z-[999] flex items-start md:items-center justify-center pt-20 md:pt-0 bg-black/50 backdrop-blur-sm px-4 md:pl-64"
+          >
             <form
+              onClick={(e) => e.stopPropagation()}
               onSubmit={handleAddDevice}
-              className="bg-white p-6 rounded-xl"
+              className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5 animate-fadeIn"
             >
-              <input
-                placeholder="Device Name"
-                value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
-              />
+              {/* Header */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-800">Add Device</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-500 hover:text-red-500 text-lg"
+                >
+                  ✕
+                </button>
+              </div>
 
-              <input
-                placeholder="MAC ID"
-                value={macId}
-                onChange={(e) => setMacId(e.target.value)}
-              />
+              {/* Inputs */}
+              <div className="space-y-4">
+                <input
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-400 
+  focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+  outline-none px-3 py-2.5 rounded-lg transition"
+                  placeholder="Device Name"
+                  value={deviceName}
+                  onChange={(e) => setDeviceName(e.target.value)}
+                  required
+                />
 
-              <button type="submit">Add</button>
-              <button onClick={() => setShowModal(false)}>Cancel</button>
+                <input
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-400 
+  focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+  outline-none px-3 py-2.5 rounded-lg transition"
+                  placeholder="MAC ID"
+                  value={macId}
+                  onChange={(e) => setMacId(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-green-500 text-white hover:opacity-90 transition"
+                >
+                  Add Device
+                </button>
+              </div>
             </form>
           </div>
         )}

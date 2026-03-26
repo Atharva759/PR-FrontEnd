@@ -72,6 +72,7 @@ const TenantDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const openDeviceModal = async (device) => {
+    navigate("/device/:device");
     setSelectedDevice(device);
     setLoadingSensor(true);
 
@@ -88,6 +89,7 @@ const TenantDashboard = () => {
     }
     setLoadingSensor(false);
   };
+
   const closeModal = () => {
     setSelectedDevice(null);
   };
@@ -360,15 +362,24 @@ const TenantDashboard = () => {
                   </div>
 
                   <div className="flex justify-between mt-4">
-                    <button onClick={() => openDeviceModal(device)} className="text-green-600 flex items-center gap-1 text-sm">
+                    <button
+                      onClick={() => viewData(device)}
+                      className="text-green-600 flex items-center gap-1 text-sm"
+                    >
                       <FaChartLine /> View
                     </button>
 
-                    <button className="text-blue-600 flex items-center gap-1 text-sm">
+                    <button
+                      onClick={() => handleEditDevice(device)}
+                      className="text-blue-600 flex items-center gap-1 text-sm"
+                    >
                       <FaEdit /> Edit
                     </button>
 
-                    <button className="text-red-600 flex items-center gap-1 text-sm">
+                    <button
+                      onClick={() => handleDeleteDevice(device.id)}
+                      className="text-red-600 flex items-center gap-1 text-sm"
+                    >
                       <FaTrash /> Delete
                     </button>
                   </div>
@@ -405,19 +416,53 @@ const TenantDashboard = () => {
                   </div>
 
                   <div className="flex justify-between mt-4">
-                    <button className="text-blue-600 text-sm">
+                    <button
+                      onClick={() => handleEditEmail(user)}
+                      className="text-blue-600 text-sm"
+                    >
                       Edit Email
                     </button>
 
-                    <button className="text-green-600 text-sm">
+                    <button
+                      onClick={() => handleChangeRole(user)}
+                      className="text-green-600 text-sm"
+                    >
                       Change Role
                     </button>
 
-                    <button className="text-red-600 text-sm">Delete</button>
+                    <button
+                      onClick={() => handleDeleteUser(user)}
+                      className="text-red-600 text-sm"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {showModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+            <form
+              onSubmit={handleAddDevice}
+              className="bg-white p-6 rounded-xl"
+            >
+              <input
+                placeholder="Device Name"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+              />
+
+              <input
+                placeholder="MAC ID"
+                value={macId}
+                onChange={(e) => setMacId(e.target.value)}
+              />
+
+              <button type="submit">Add</button>
+              <button onClick={() => setShowModal(false)}>Cancel</button>
+            </form>
           </div>
         )}
       </div>

@@ -39,7 +39,7 @@ const TenantManagement = () => {
   const loadTenants = async () => {
     try {
 
-      const data = await getAllTenants();
+      const data = await getTenantDevicesRegistered();
       setTenants(data || []);
 
     } catch (err) {
@@ -82,8 +82,6 @@ const TenantManagement = () => {
     }
 
   };
-
-
 
   /* UPDATE TENANT */
 

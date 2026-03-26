@@ -1,59 +1,57 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
-const COLORS = ["#36A2EB", "#FF6384"];
+const COLORS = ["#36A2EB", "#FF6384", "#FFCE56", "#4BC0C0", "#9966FF"];
 
 const FirebaseAnalytics = () => {
-  const [googleCount, setGoogleCount] = useState(0);
-  const [emailCount, setEmailCount] = useState(0);
   const [providerData, setProviderData] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const usersRef = collection(db, "users");
-      const snapshot = await getDocs(usersRef);
-      const allUsers = snapshot.docs.map((doc) => doc.data());
+    const usersRef = collection(db, "users");
 
+    const unsubscribe = onSnapshot(usersRef, (snapshot) => {
       const providers = {};
-      allUsers.forEach((user) => {
-        const provider = user.provider || "unknown";
+      let total = 0;
+
+      snapshot.docs.forEach((doc) => {
+        const user = doc.data();
+        const provider = user.provider || "other";
+
         providers[provider] = (providers[provider] || 0) + 1;
+        total++;
       });
 
-      const google = providers["google"] || 0;
-      const email = providers["email"] || 0;
+      const formattedData = Object.keys(providers).map((key) => ({
+        name: key,
+        value: providers[key],
+      }));
 
-      setGoogleCount(google);
-      setEmailCount(email);
-      setProviderData([
-        { name: "Google", value: google },
-        { name: "Email", value: email },
-      ]);
-    };
+      setProviderData(formattedData);
+      setTotalUsers(total);
+    });
 
-    fetchUsers();
+    return () => unsubscribe();
   }, []);
 
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Sign-In Analytics</h1>
+      <h1 className="text-2xl font-bold mb-6">Admin Analytics</h1>
 
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
-        <div className="bg-white p-6 shadow-md flex-1 text-center rounded-xl">
-          <h2 className="text-xl font-semibold">Google Sign-Ins</h2>
-          <p className="text-3xl font-bold mt-2">{googleCount}</p>
-        </div>
-
-        <div className="bg-white p-6 shadow-md flex-1 text-center rounded-xl">
-          <h2 className="text-xl font-semibold">Email Sign-Ins</h2>
-          <p className="text-3xl font-bold mt-2">{emailCount}</p>
-        </div>
+      {/* Total Users */}
+      <div className="bg-white p-6 shadow-md mb-6 rounded-xl text-center">
+        <h2 className="text-xl font-semibold">Total Users</h2>
+        <p className="text-3xl font-bold mt-2">{totalUsers}</p>
       </div>
 
+      {/* Pie Chart */}
       <div className="bg-white p-6 shadow-md w-max rounded-xl">
-        <h3 className="text-lg font-semibold mb-4">Sign-Ins by Provider</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          Sign-Ins by Provider
+        </h3>
+
         <PieChart width={400} height={300}>
           <Pie
             data={providerData}
@@ -71,6 +69,7 @@ const FirebaseAnalytics = () => {
               />
             ))}
           </Pie>
+
           <Tooltip />
           <Legend />
         </PieChart>

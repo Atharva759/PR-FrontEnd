@@ -108,7 +108,7 @@ const DevicesPage = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="bg-blue-800 hover:bg-blue-700 p-2 rounded-lg"
+            className="bg-blue-800 hover:bg-blue-700 p-2 rounded-lg cursor-pointer"
           >
             <FaArrowLeft />
           </button>
@@ -118,10 +118,10 @@ const DevicesPage = () => {
       </div>
 
       {/* DEVICE INFO */}
-      <div className="bg-white p-6 rounded-xl shadow mb-6 border border-blue-200">
+      <div className="bg-white p-6 rounded-xl shadow mb-6 border border-blue-200 flex justify-start gap-2 items-center">
         <h2 className="text-lg font-semibold text-blue-700 mb-1">
           MAC Address
-        </h2>
+        </h2> :
         <p className="text-gray-700">{mac}</p>
       </div>
 

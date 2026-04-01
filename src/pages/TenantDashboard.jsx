@@ -9,11 +9,15 @@ import {
   FaEdit,
   FaChartLine,
 } from "react-icons/fa";
+import { TbDeviceHeartMonitorFilled } from "react-icons/tb";
+import { MdDomainAdd } from "react-icons/md";
+
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 import toast from "react-hot-toast";
 import logo from "../assets/logo.png";
+import { BsBuildingFill } from "react-icons/bs";
 
 /* DEVICE APIs */
 import {
@@ -31,6 +35,8 @@ import {
   updateUserEmail,
   deleteUser,
 } from "../api/userApi";
+
+import { getFacilities, createFacility } from "../api/facilityApi";
 
 const GaugeCard = ({ label, value, max }) => {
   const percentage = Math.min((value / max) * 100, 100);
@@ -70,6 +76,46 @@ const TenantDashboard = () => {
   const [sensorData, setSensorData] = useState([]);
   const [loadingSensor, setLoadingSensor] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const [facilities, setFacilities] = useState([]);
+  const [selectedFacility, setSelectedFacility] = useState("");
+  const [showFacilityModal, setShowFacilityModal] = useState(false);
+  const [facilityName, setFacilityName] = useState("");
+  const [showFacilityDevicesModal, setShowFacilityDevicesModal] =
+    useState(false);
+  const [facilityDevices, setFacilityDevices] = useState([]);
+  const [selectedFacilityForView, setSelectedFacilityForView] = useState(null);
+
+  const openFacilityDevices = async (facility) => {
+    try {
+      setSelectedFacilityForView(facility);
+
+      const data = await getTenantDevices();
+
+      let allDevices = [];
+      if (Array.isArray(data)) allDevices = data;
+      else if (data?.devices) allDevices = data.devices;
+
+      const filtered = allDevices.filter((d) => d.facilityId === facility.id);
+
+      setFacilityDevices(filtered);
+      setShowFacilityDevicesModal(true);
+    } catch (err) {
+      toast.error("Failed to load devices");
+    }
+  };
+
+  const fetchFacilities = async () => {
+    try {
+      const data = await getFacilities();
+      setFacilities(data || []);
+    } catch (err) {
+      toast.error("Failed to load facilities");
+    }
+  };
+  useEffect(() => {
+    fetchFacilities();
+  }, []);
 
   const openDeviceModal = async (device) => {
     setSelectedDevice(device);
@@ -141,17 +187,28 @@ const TenantDashboard = () => {
   /* ADD DEVICE */
   const handleAddDevice = async (e) => {
     e.preventDefault();
+    if (!selectedFacility) {
+      toast.error("Please select a facility");
+      return;
+    }
 
     try {
-      await toast.promise(registerDevice({ name: deviceName, mac: macId }), {
-        loading: "Registering device...",
-        success: "Device added",
-        error: "Failed to add device",
-      });
-
+      await toast.promise(
+        registerDevice({
+          name: deviceName,
+          mac: macId,
+          facilityId: selectedFacility,
+        }),
+        {
+          loading: "Registering device...",
+          success: "Device added",
+          error: "Failed to add device",
+        },
+      );
       setShowModal(false);
       setDeviceName("");
       setMacId("");
+      setSelectedFacility("");
 
       fetchDevices();
     } catch (err) {
@@ -284,7 +341,7 @@ const TenantDashboard = () => {
                   setActiveView("users");
                   setIsSidebarOpen(false);
                 }}
-                className={`flex items-center gap-3 p-3 rounded-lg ${
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
                   activeView === "users" ? "bg-white/20" : "hover:bg-white/20"
                 }`}
               >
@@ -296,11 +353,25 @@ const TenantDashboard = () => {
                   setActiveView("devices");
                   setIsSidebarOpen(false);
                 }}
-                className={`flex items-center gap-3 p-3 rounded-lg ${
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
                   activeView === "devices" ? "bg-white/20" : "hover:bg-white/20"
                 }`}
               >
                 <FaMicrochip /> Manage Devices
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveView("facilities");
+                  setIsSidebarOpen(false);
+                }}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
+                  activeView === "facilities"
+                    ? "bg-white/20"
+                    : "hover:bg-white/20"
+                }`}
+              >
+                <BsBuildingFill /> Manage Facilities
               </button>
             </nav>
           </div>
@@ -308,7 +379,7 @@ const TenantDashboard = () => {
           {/* LOGOUT */}
           <button
             onClick={logout}
-            className="flex items-center justify-center gap-2 p-3 bg-white text-blue-600 rounded-lg font-semibold"
+            className="flex items-center justify-center gap-2 p-3 bg-white text-green-600 rounded-full font-semibold cursor-pointer"
           >
             <TbLogout size={20} /> Logout
           </button>
@@ -332,59 +403,76 @@ const TenantDashboard = () => {
 
         {/* DEVICES VIEW */}
         {activeView === "devices" && (
-          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border min-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className="bg-white/80 backdrop-blur-lg p-5 md:p-8 rounded-3xl shadow-2xl border border-gray-100 min-h-[calc(100vh-200px)] overflow-y-auto transition-all">
+            {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <h2 className="text-xl text-gray-800 font-semibold">
+              <h2 className="text-xl font-bold text-gray-800">
                 Registered Devices
               </h2>
 
-              <button
-                onClick={() => setShowModal(true)}
-                className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-full"
-              >
-                <FaPlus /> Add Device
-              </button>
+              <div className="flex gap-3 items-center">
+                {/* ADD DEVICE */}
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-full shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                >
+                  <FaPlus />
+                  Add Device
+                </button>
+              </div>
             </div>
 
+            {/* GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {devices.map((device) => (
                 <div
                   key={device.id}
-                  className="bg-white p-5 rounded-xl border border-blue-100 hover:shadow-lg transition"
+                  className="group bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                 >
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="w-12 h-12 flex items-center justify-center bg-blue-50 rounded-lg">
+                  {/* DEVICE HEADER */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-tr from-blue-100 to-blue-50 rounded-xl group-hover:scale-110 transition">
                       <FaMicrochip className="text-blue-600 text-xl" />
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-bold text-gray-800">
+                      <h3 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition">
                         {device.name}
                       </h3>
                       <p className="text-xs text-gray-500">MAC: {device.mac}</p>
+                      <p className="text-xs text-gray-400">
+                        Facility ID: {device.facilityId}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex justify-between mt-4">
+                  {/* ACTION BUTTONS */}
+                  <div className="flex gap-2 mt-4">
+                    {/* VIEW */}
                     <button
                       onClick={() => viewData(device)}
-                      className="text-green-600 flex items-center gap-1 text-sm"
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-green-100 text-green-700 hover:bg-green-600 hover:text-white transition-all cursor-pointer"
                     >
-                      <FaChartLine /> View
+                      <FaChartLine />
+                      View
                     </button>
 
+                    {/* EDIT */}
                     <button
                       onClick={() => handleEditDevice(device)}
-                      className="text-blue-600 flex items-center gap-1 text-sm"
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white transition-all cursor-pointer"
                     >
-                      <FaEdit /> Edit
+                      <FaEdit />
+                      Edit
                     </button>
 
+                    {/* DELETE */}
                     <button
                       onClick={() => handleDeleteDevice(device.id)}
-                      className="text-red-600 flex items-center gap-1 text-sm"
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all cursor-pointer"
                     >
-                      <FaTrash /> Delete
+                      <FaTrash />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -395,54 +483,231 @@ const TenantDashboard = () => {
 
         {/* USERS VIEW */}
         {activeView === "users" && (
-          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border h-[620px] overflow-auto">
-            <h2 className="text-xl text-gray-800 font-semibold mb-8">
+          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-xl border h-[620px] overflow-auto">
+            <h2 className="text-xl text-gray-800 font-semibold mb-6">
               Tenant Users
             </h2>
 
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-separate border-spacing-y-2">
+                {/* HEADER */}
+                <thead>
+                  <tr className="text-gray-500 text-xs uppercase tracking-wider">
+                    <th className="text-left px-6 py-2">User</th>
+                    <th className="text-left px-6 py-2">Role</th>
+                    <th className="text-center px-6 py-2">Actions</th>
+                  </tr>
+                </thead>
+
+                {/* BODY */}
+                <tbody>
+                  {users.map((user) => {
+                    // Role Color Logic
+                    const roleColor =
+                      user.role === "admin"
+                        ? "bg-red-100 text-red-600"
+                        : user.role === "manager"
+                          ? "bg-green-100 text-green-600"
+                          : "bg-blue-100 text-blue-600";
+
+                    return (
+                      <tr
+                        key={user.uid}
+                        className="bg-white shadow-sm hover:shadow-md transition rounded-xl"
+                      >
+                        {/* USER */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-11 h-11 flex items-center justify-center bg-blue-50 rounded-full">
+                              <FaUsers className="text-blue-600 text-lg" />
+                            </div>
+
+                            <div>
+                              <p className="font-semibold text-gray-800">
+                                {user.email}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                UID: {user.uid.slice(0, 10)}...
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* ROLE BADGE */}
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-4 py-1 text-xs font-semibold rounded-full ${roleColor}`}
+                          >
+                            {user.role}
+                          </span>
+                        </td>
+
+                        {/* ACTIONS */}
+                        <td className="px-6 py-4">
+                          <div className="flex justify-center gap-3">
+                            <button
+                              onClick={() => handleEditEmail(user)}
+                              className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition text-xs font-medium cursor-pointer"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() => handleChangeRole(user)}
+                              className="px-3 py-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition text-xs font-medium cursor-pointer"
+                            >
+                              Change Role
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              className="px-3 py-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-medium cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* FACILITIES VIEW */}
+        {activeView === "facilities" && (
+          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border min-h-[calc(100vh-200px)] overflow-y-auto">
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xl text-gray-800 font-semibold">
+                Facilities
+              </h2>
+
+              <button
+                onClick={() => setShowFacilityModal(true)}
+                className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition cursor-pointer"
+              >
+                <FaPlus className="text-sm" />
+                Add Facility
+              </button>
+            </div>
+
+            {/* FACILITY LIST */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {users.map((user) => (
+              {facilities.map((facility) => (
                 <div
-                  key={user.uid}
-                  className="bg-white p-5 rounded-xl border border-blue-100 hover:shadow-lg transition"
+                  key={facility.id}
+                  className="bg-white p-5 rounded-xl border border-blue-100 hover:shadow-lg hover:border-blue-300 transition duration-200"
                 >
                   <div className="flex items-center gap-4 mb-3">
-                    <div className="w-12 h-12 flex items-center justify-center bg-blue-50 rounded-lg">
-                      <FaUsers className="text-blue-600 text-xl" />
+                    <div className="w-12 h-12 flex items-center justify-center bg-green-50 rounded-lg text-xl">
+                      🏭
                     </div>
 
                     <div>
-                      <h3 className="text-md font-bold text-gray-800">
-                        {user.email}
+                      <h3 className="text-lg font-bold text-gray-800">
+                        {facility.name}
                       </h3>
-                      <p className="text-xs text-gray-500">Role: {user.role}</p>
+                      <p className="text-xs text-gray-500">ID: {facility.id}</p>
                     </div>
                   </div>
 
+                  {/* ACTIONS */}
                   <div className="flex justify-between mt-4">
+                    {/* PRIMARY BUTTON */}
                     <button
-                      onClick={() => handleEditEmail(user)}
-                      className="text-blue-600 text-sm"
+                      onClick={() => openFacilityDevices(facility)}
+                      className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-700 transition cursor-pointer"
                     >
-                      Edit Email
+                      View Devices
                     </button>
 
+                    {/* SECONDARY BUTTON */}
                     <button
-                      onClick={() => handleChangeRole(user)}
-                      className="text-green-600 text-sm"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(facility.id);
+                          toast.success("Facility ID copied");
+                        } catch (err) {
+                          toast.error("Failed to copy ID");
+                          console.error(err);
+                        }
+                      }}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 hover:text-gray-800 transition cursor-pointer"
                     >
-                      Change Role
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteUser(user)}
-                      className="text-red-600 text-sm"
-                    >
-                      Delete
+                      Copy ID
                     </button>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {showFacilityDevicesModal && (
+          <div
+            onClick={() => setShowFacilityDevicesModal(false)}
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-3xl p-6 rounded-2xl shadow-2xl space-y-5 max-h-[80vh] overflow-y-auto"
+            >
+              {/* HEADER */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-800">
+                  Devices in {selectedFacilityForView?.name}
+                </h2>
+
+                <button
+                  onClick={() => setShowFacilityDevicesModal(false)}
+                  className="text-gray-500 hover:text-red-500 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* DEVICE LIST */}
+              {facilityDevices.length === 0 ? (
+                <p className="text-gray-500 text-center">
+                  No devices found for this facility
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {facilityDevices.map((device) => (
+                    <div
+                      key={device.id}
+                      className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition duration-200"
+                    >
+                      {/* Left Section */}
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                          <TbDeviceHeartMonitorFilled className="text-blue-600 text-xl" />
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm md:text-base">
+                            {device.name}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            MAC: <span className="font-mono">{device.mac}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right Section */}
+                      <button
+                        onClick={() => navigate(`/device/${device.mac}`)}
+                        className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer"
+                      >
+                        View Data
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -463,7 +728,7 @@ const TenantDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="text-gray-500 hover:text-red-500 text-lg"
+                  className="text-gray-500 hover:text-red-500 text-lg cursor-pointer"
                 >
                   ✕
                 </button>
@@ -475,7 +740,7 @@ const TenantDashboard = () => {
                   className="w-full bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-400 
   focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
   outline-none px-3 py-2.5 rounded-lg transition"
-                  placeholder="Device Name"
+                  placeholder="Enter Device Name"
                   value={deviceName}
                   onChange={(e) => setDeviceName(e.target.value)}
                   required
@@ -485,31 +750,109 @@ const TenantDashboard = () => {
                   className="w-full bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-400 
   focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
   outline-none px-3 py-2.5 rounded-lg transition"
-                  placeholder="MAC ID"
+                  placeholder="Enter MAC ID"
                   value={macId}
                   onChange={(e) => setMacId(e.target.value)}
                   required
                 />
+
+                <select
+                  value={selectedFacility}
+                  onChange={(e) => setSelectedFacility(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-800 
+  focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+  outline-none px-3 py-2.5 rounded-lg transition"
+                  required
+                >
+                  <option value="">Select Facility</option>
+
+                  {facilities.map((facility) => (
+                    <option key={facility.id} value={facility.id}>
+                      {facility.name} ({facility.id})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Buttons */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
-
+              <div className="flex justify-center gap-3 pt-2">
                 <button
                   type="submit"
-                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-green-500 text-white hover:opacity-90 transition"
+                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-green-500 text-white hover:opacity-90 transition cursor-pointer"
                 >
                   Add Device
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/** FACILITY MODAL */}
+        {showFacilityModal && (
+          <div
+            onClick={() => setShowFacilityModal(false)}
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5"
+            >
+              {/* HEADER */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-800">
+                  Create Facility
+                </h2>
+                <button
+                  onClick={() => setShowFacilityModal(false)}
+                  className="text-gray-500 hover:text-red-500"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* INPUT */}
+              <input
+                value={facilityName}
+                onChange={(e) => setFacilityName(e.target.value)}
+                placeholder="Facility Name"
+                className="w-full border px-3 py-2 rounded-lg text-gray-800"
+              />
+
+              {/* BUTTONS */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowFacilityModal(false)}
+                  className="px-4 py-2 bg-gray-200 rounded-lg"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (!facilityName) {
+                      toast.error("Enter facility name");
+                      return;
+                    }
+
+                    await toast.promise(
+                      createFacility({ name: facilityName }),
+                      {
+                        loading: "Creating...",
+                        success: "Facility created",
+                        error: "Failed",
+                      },
+                    );
+
+                    setFacilityName("");
+                    setShowFacilityModal(false);
+                    fetchFacilities();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

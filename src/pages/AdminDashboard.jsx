@@ -30,7 +30,7 @@ const CAMURL = import.meta.env.VITE_ESP_FACE;
 const AdminDashboard = () => {
   const [currentView, setCurrentView] = useState("quick-actions");
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile
-  const [collapsed, setCollapsed] = useState(false); // desktop
+  const [collapsed, setCollapsed] = useState(true); // desktop
 
   // Persist collapse state
   useEffect(() => {

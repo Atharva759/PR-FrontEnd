@@ -163,7 +163,11 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="relative flex flex-col justify-start items-center min-h-screen px-4 pt-16 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="relative min-h-screen flex flex-col items-center px-4 pt-16 overflow-hidden"
+  style={{
+    background:
+      "radial-gradient(ellipse at 30% 40%, rgba(126, 87, 194, 0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(30, 136, 229, 0.25) 0%, transparent 55%), #0d1321",
+  }}>
 
       <div className="text-center mt-16 mb-10">
         <div className="flex justify-center mb-4">

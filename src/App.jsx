@@ -11,6 +11,7 @@ import ManageUsers from "./components/ManageUsers";
 import SensorDashboard from "./components/SensorDashboard";
 import PZEM from "./components/PZEM";
 import DevicesPage from "./components/DevicesPage";
+import AgenticAIButton from "./components/AgenticAIButton";
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
             }
           />
         </Routes>
+        <AgenticAIButton />
       </BrowserRouter>
     </>
   );

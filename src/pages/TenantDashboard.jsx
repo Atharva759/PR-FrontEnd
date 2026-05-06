@@ -8,6 +8,7 @@ import {
   FcOrganization,
   FcConferenceCall,
   FcFactory,
+  FcEngineering ,
 } from "react-icons/fc";
 
 import { useNavigate } from "react-router-dom";
@@ -317,6 +318,10 @@ const TenantDashboard = () => {
     }
   };
 
+  const handleDoorLock = () => {
+
+  }
+
   return (
     <div className="min-h-screen flex overflow-x-hidden">
       {/* MOBILE TOP BAR */}
@@ -336,7 +341,7 @@ const TenantDashboard = () => {
       <div className="w-0 md:w-72 flex-shrink-0">
         <div
           className={`
-          fixed md:relative top-0 left-0 h-full md:h-screen z-50
+          fixed md:relative top-0 left-0 h-screen z-50
           w-72 text-white
            shadow-2xl p-8 flex flex-col justify-between
           transform transition-transform duration-300
@@ -419,6 +424,20 @@ const TenantDashboard = () => {
                     >
                       <FcFactory className="text-2xl" /> Manage Facilities
                     </button>
+{/**
+
+ 
+                    <button
+                      onClick={handleDoorLock()}
+                      className={` flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
+                        activeView === "facilities"
+                          ? "btn-primary"
+                          : "hover:bg-white/20"
+                      }`}
+                    >
+                      <FcEngineering className="text-2xl" /> Facility Actions
+                    </button>
+*/}
                   </>
                 )}
             </nav>
@@ -460,7 +479,7 @@ const TenantDashboard = () => {
 
         {/* DEVICES VIEW */}
         {activeView === "devices" && (
-          <div className="bg-white backdrop-blur-lg p-5 md:p-8 rounded-3xl shadow-2xl border border-gray-100 h-[700px] overflow-y-auto transition-all">
+          <div className="bg-white backdrop-blur-lg p-5 md:p-8 rounded-3xl shadow-2xl border border-gray-100 h-[680px] overflow-y-auto transition-all">
             {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <h2 className="text-xl font-bold text-gray-800">
@@ -604,7 +623,7 @@ const TenantDashboard = () => {
 
         {/* USERS VIEW */}
         {activeView === "users" && (
-          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-xl border h-[700px] overflow-auto">
+          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-xl border h-[680px] overflow-auto">
             <h2 className="text-xl text-gray-800 font-semibold mb-6">
               Tenant Users
             </h2>
@@ -707,7 +726,7 @@ const TenantDashboard = () => {
 
         {/* FACILITIES VIEW */}
         {activeView === "facilities" && (
-          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border h-[700px] overflow-y-auto">
+          <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border h-[680px] overflow-y-auto">
             {/* HEADER */}
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-xl text-gray-800 font-semibold">

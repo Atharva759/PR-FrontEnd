@@ -169,75 +169,74 @@ const Auth = () => {
   };
 
   return (
-    
-      <div
-  className="relative min-h-screen flex flex-col items-center px-4 pt-16 overflow-hidden"
-  style={{
-    background:
-      "radial-gradient(ellipse at 30% 40%, rgba(126, 87, 194, 0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(30, 136, 229, 0.25) 0%, transparent 55%), #0d1321",
-  }}
->
-        <div className="text-center mt-16 mb-10">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-500/20 p-4 rounded-full border">
-              <span className="text-3xl">🏢</span>
-            </div>
+    <div
+      className="relative min-h-screen flex flex-col items-center px-4 pt-16 overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(ellipse at 30% 40%, rgba(126, 87, 194, 0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(30, 136, 229, 0.25) 0%, transparent 55%), #0d1321",
+      }}
+    >
+      <div className="text-center mt-16 mb-10">
+        <div className="flex justify-center mb-4">
+          <div className="bg-blue-500/20 p-4 rounded-full border">
+            <span className="text-3xl">🏢</span>
+          </div>
+        </div>
+
+        <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-500 text-transparent bg-clip-text">
+          Enerlytics Tenant Portal
+        </h1>
+
+        <p className="text-gray-300 mt-3">
+          Securely access your tenant dashboard and manage your IoT devices and
+          data.
+        </p>
+      </div>
+
+      <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
+        <h2 className="text-lg font-semibold text-center mb-6">
+          Tenant Account Access
+        </h2>
+
+        <form onSubmit={handleEmailSubmit} className="grid gap-5">
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="p-3 border rounded-lg"
+            required
+          />
+
+          <button className="p-3 bg-blue-600 text-white rounded-full cursor-pointer">
+            Send Login Link
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-300"></div>
+            <span className="text-gray-500 text-sm">or</span>
+            <div className="flex-1 h-px bg-gray-300"></div>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-500 text-transparent bg-clip-text">
-            Enerlytics Tenant Portal
-          </h1>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="flex justify-center items-center gap-2 p-3 border rounded-full cursor-pointer"
+          >
+            <FcGoogle size={25} /> Continue with Google
+          </button>
+        </form>
 
-          <p className="text-gray-300 mt-3">
-            Securely access your tenant dashboard and manage your IoT devices
-            and data.
-          </p>
-        </div>
-
-        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
-          <h2 className="text-lg font-semibold text-center mb-6">
-            Tenant Account Access
-          </h2>
-
-          <form onSubmit={handleEmailSubmit} className="grid gap-5">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="p-3 border rounded-lg"
-              required
-            />
-
-            <button className="p-3 bg-blue-600 text-white rounded-full">
-              Send Login Link
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-300"></div>
-              <span className="text-gray-500 text-sm">or</span>
-              <div className="flex-1 h-px bg-gray-300"></div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="flex justify-center items-center gap-2 p-3 border rounded-full"
-            >
-              <FcGoogle size={25} /> Continue with Google
-            </button>
-          </form>
-
-          <p className="text-center mt-6 text-sm text-gray-600">
-            System administrator?{" "}
-            <a
-              href="/adminlogin"
-              className="text-blue-600 font-semibold hover:underline"
-            >
-              Go to Admin Console
-            </a>
-          </p>
-        </div>
+        <p className="text-center mt-6 text-sm text-gray-600">
+          System administrator?{" "}
+          <a
+            href="/adminlogin"
+            className="text-blue-600 font-semibold hover:underline"
+          >
+            Go to Admin Console
+          </a>
+        </p>
+      </div>
     </div>
   );
 };

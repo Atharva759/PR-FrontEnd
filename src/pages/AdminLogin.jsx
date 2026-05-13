@@ -202,7 +202,7 @@ const AdminLogin = () => {
             required
           />
 
-          <button className="p-3 bg-blue-600 text-white rounded-full">
+          <button className="p-3 bg-blue-600 text-white rounded-full cursor-pointer">
             Send Login Link
           </button>
 
@@ -215,7 +215,7 @@ const AdminLogin = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex justify-center items-center gap-2 p-3 border border-white/30 rounded-full text-white"
+            className="flex justify-center items-center gap-2 p-3 border border-white/30 rounded-full text-white cursor-pointer"
           >
             <FcGoogle size={25} /> Continue with Google
           </button>

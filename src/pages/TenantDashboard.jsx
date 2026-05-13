@@ -8,7 +8,7 @@ import {
   FcOrganization,
   FcConferenceCall,
   FcFactory,
-  FcEngineering ,
+  FcEngineering,
 } from "react-icons/fc";
 
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 import toast from "react-hot-toast";
 import logo from "../assets/logo.png";
+import UserProfileDropdown from "../components/UserProfileDropdown";
 
 /* DEVICE APIs */
 import {
@@ -318,9 +319,7 @@ const TenantDashboard = () => {
     }
   };
 
-  const handleDoorLock = () => {
-
-  }
+  const handleDoorLock = () => {};
 
   return (
     <div className="min-h-screen flex overflow-x-hidden">
@@ -382,7 +381,6 @@ const TenantDashboard = () => {
 
             {/* NAV */}
             <nav className="flex flex-col gap-4">
-
               <button
                 onClick={() => {
                   setActiveView("devices");
@@ -390,66 +388,44 @@ const TenantDashboard = () => {
                 }}
                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
                   activeView === "devices" ? "btn-primary" : "hover:bg-white/20"
-                  }`}
-                  >
+                }`}
+              >
                 <FcElectronics className="text-2xl" /> Manage Devices
               </button>
-                {role === "tenant_admin" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setActiveView("users");
-                        setIsSidebarOpen(false);
-                      }}
-                      className={` flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
-                        activeView === "users"
-                          ? "btn-primary"
-                          : "hover:bg-white/20"
-                      }`}
-                    >
-                      <FcConferenceCall className="text-2xl" /> Manage Tenant
-                      Users
-                    </button>
-  
-                    <button
-                      onClick={() => {
-                        setActiveView("facilities");
-                        setIsSidebarOpen(false);
-                      }}
-                      className={` flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
-                        activeView === "facilities"
-                          ? "btn-primary"
-                          : "hover:bg-white/20"
-                      }`}
-                    >
-                      <FcFactory className="text-2xl" /> Manage Facilities
-                    </button>
-{/**
+              {role === "tenant_admin" && (
+                <>
+                  <button
+                    onClick={() => {
+                      setActiveView("users");
+                      setIsSidebarOpen(false);
+                    }}
+                    className={` flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
+                      activeView === "users"
+                        ? "btn-primary"
+                        : "hover:bg-white/20"
+                    }`}
+                  >
+                    <FcConferenceCall className="text-2xl" /> Manage Tenant
+                    Users
+                  </button>
 
- 
-                    <button
-                      onClick={handleDoorLock()}
-                      className={` flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
-                        activeView === "facilities"
-                          ? "btn-primary"
-                          : "hover:bg-white/20"
-                      }`}
-                    >
-                      <FcEngineering className="text-2xl" /> Facility Actions
-                    </button>
-*/}
-                  </>
-                )}
+                  <button
+                    onClick={() => {
+                      setActiveView("facilities");
+                      setIsSidebarOpen(false);
+                    }}
+                    className={` flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
+                      activeView === "facilities"
+                        ? "btn-primary"
+                        : "hover:bg-white/20"
+                    }`}
+                  >
+                    <FcFactory className="text-2xl" /> Manage Facilities
+                  </button>
+                </>
+              )}
             </nav>
           </div>
-
-          {/* LOGOUT */}
-          <button
-            onClick={logout}
-            className="btn-primary flex items-center justify-center gap-2 p-3 bg-white rounded-full font-semibold cursor-pointer"
-          >
-            <TbLogout size={20} /> Logout
-          </button>
         </div>
       </div>
 
@@ -472,14 +448,53 @@ const TenantDashboard = () => {
   `,
         }}
       >
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Tenant Dashboard</h1>
-          <p>Manage your registered devices and tenant users.</p>
+        <div
+  className="
+    mb-8
+    bg-white/5
+    border border-white/10
+    backdrop-blur-2xl
+    rounded-3xl
+    px-6 py-5
+    shadow-2xl
+    flex flex-col md:flex-row
+    md:items-center
+    md:justify-between
+    gap-5
+    relative
+    z-[9999]
+  "
+>
+          {/* LEFT */}
+          <div>
+            <h1
+              className="
+        text-3xl md:text-4xl
+        font-black
+        bg-gradient-to-r
+        from-cyan-400
+        to-blue-500
+        bg-clip-text
+        text-transparent
+      "
+            >
+              Tenant Dashboard
+            </h1>
+
+            <p className="text-gray-400 mt-2">
+              Manage facilities, devices and tenant users.
+            </p>
+          </div>
+
+          {/* RIGHT */}
+          <div className="flex items-center gap-4">
+            <UserProfileDropdown role={role} />
+          </div>
         </div>
 
         {/* DEVICES VIEW */}
         {activeView === "devices" && (
-          <div className="bg-white backdrop-blur-lg p-5 md:p-8 rounded-3xl shadow-2xl border border-gray-100 h-[680px] overflow-y-auto transition-all">
+          <div className="bg-white backdrop-blur-lg p-5 md:p-8 rounded-3xl shadow-2xl border border-gray-100 h-[680px] overflow-y-auto relative transition-all">
             {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <h2 className="text-xl font-bold text-gray-800">

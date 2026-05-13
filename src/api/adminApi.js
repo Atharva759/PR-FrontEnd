@@ -237,22 +237,59 @@ export const inviteTenantAdmin = async (email, tenantId) => {
 };
 
 
-/* UPDATE TENANT */
-export const updateTenant = async (tenantId, name) => {
+/* GET ALL TENANTS */
+export const getAllTenants = async () => {
+
   const config = await getAuthHeader();
 
-  const res = await axios.patch(
-    `${API_BASE}/tenants/${tenantId}`,
-    { name },
+  const res = await axios.get(
+    `${API_BASE}/tenants`,
     config
   );
 
   return res.data;
+
 };
+
+
+
+/* GET SINGLE TENANT */
+export const getTenantById = async (tenantId) => {
+
+  const config = await getAuthHeader();
+
+  const res = await axios.get(
+    `${API_BASE}/tenants/${tenantId}`,
+    config
+  );
+
+  return res.data;
+
+};
+
+/* UPDATE TENANT */
+export const updateTenant = async (
+  tenantId,
+  updateData
+) => {
+
+  const config = await getAuthHeader();
+
+  const res = await axios.patch(
+    `${API_BASE}/tenants/${tenantId}`,
+    updateData,
+    config
+  );
+
+  return res.data;
+
+};
+
 
 
 /* DELETE TENANT */
 export const deleteTenant = async (tenantId) => {
+
   const config = await getAuthHeader();
 
   const res = await axios.delete(
@@ -261,88 +298,62 @@ export const deleteTenant = async (tenantId) => {
   );
 
   return res.data;
+
 };
 
-export const getTenantDevicesRegistered = async (req, res) => {
-  try {
+/* GET TENANT DEVICES */
+export const getTenantDevicesRegistered = async (
+  tenantId
+) => {
 
-    const { tenantId } = req.params;
+  const config = await getAuthHeader();
 
-    const snapshot = await admin
-      .database()
-      .ref("/devices_registry")
-      .once("value");
+  const res = await axios.get(
+    `${API_BASE}/tenants/${tenantId}/devices`,
+    config
+  );
 
-    const devices = snapshot.val() || {};
-
-    const tenantDevices = Object.entries(devices)
-      .filter(([id, device]) => device.tenantId === tenantId)
-      .map(([id, device]) => ({
-        deviceId: id,
-        ...device
-      }));
-
-    res.json(tenantDevices);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch tenant devices" });
-  }
-};
-
-
-
-/* ASSIGN DEVICE TO TENANT */
-
-export const assignDeviceToTenant = async (req, res) => {
-
-  try {
-
-    const { tenantId } = req.params;
-    const { deviceId } = req.body;
-
-    await admin
-      .database()
-      .ref(`/devices_registry/${deviceId}`)
-      .update({
-        tenantId
-      });
-
-    res.json({ message: "Device assigned to tenant" });
-
-  } catch (err) {
-
-    console.error(err);
-    res.status(500).json({ error: "Failed to assign device" });
-
-  }
+  return res.data;
 
 };
 
 
 
-/* REMOVE DEVICE FROM TENANT */
+/* ASSIGN DEVICE */
+export const assignDeviceToTenant = async (
+  tenantId,
+  deviceId
+) => {
 
-export const removeDeviceFromTenant = async (req, res) => {
+  const config = await getAuthHeader();
 
-  try {
+  const res = await axios.post(
+    `${API_BASE}/tenants/${tenantId}/devices/assign`,
+    {
+      deviceId
+    },
+    config
+  );
 
-    const { deviceId } = req.params;
+  return res.data;
 
-    await admin
-      .database()
-      .ref(`/devices_registry/${deviceId}`)
-      .update({
-        tenantId: null
-      });
+};
 
-    res.json({ message: "Device removed from tenant" });
 
-  } catch (err) {
 
-    console.error(err);
-    res.status(500).json({ error: "Failed to remove device" });
+/* REMOVE DEVICE */
+export const removeDeviceFromTenant = async (
+  tenantId,
+  deviceId
+) => {
 
-  }
+  const config = await getAuthHeader();
+
+  const res = await axios.delete(
+    `${API_BASE}/tenants/${tenantId}/devices/${deviceId}`,
+    config
+  );
+
+  return res.data;
 
 };

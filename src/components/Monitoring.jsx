@@ -98,63 +98,98 @@ const Monitoring = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <Activity className="w-6 h-6 text-blue-600" />
-        System Monitoring
-      </h1>
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {/* HEADER */}
 
-        <Card
-          title="Total Users"
-          icon={<Users className="w-6 h-6 text-indigo-600" />}
-          value={userCount}
-          footer={`Last Updated: ${timestamps.users || "..."}`}
-        />
+    <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
-        <Card
-          title="Total Tenants"
-          icon={<Database className="w-6 h-6 text-blue-600" />}
-          value={tenantCount}
-          footer={`Last Updated: ${timestamps.realtime || "..."}`}
-        />
+      <div className="flex items-center gap-4">
 
-        <Card
-          title="Connected Devices"
-          icon={<Wifi className="w-6 h-6 text-cyan-600" />}
-          value={connectedDevices}
-          footer={`Last Updated: ${timestamps.backend || "..."}`}
-        />
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center shadow-xl">
 
-        <Card
-          title="Frontend Status"
-          icon={<Globe className="w-6 h-6 text-green-600" />}
-          value={<StatusBadge status={frontendStatus} />}
-          footer={`Last Updated: ${timestamps.frontend || "..."}`}
-        />
+          <Activity className="w-8 h-8 text-white" />
 
-        <Card
-          title="Backend Health"
-          icon={<Server className="w-6 h-6 text-rose-600" />}
-          value={<StatusBadge status={backendHealth} />}
-          footer={`Last Updated: ${timestamps.backend || "..."}`}
-        />
+        </div>
 
-        <Card
-          title="Storage Usage"
-          icon={<HardDrive className="w-6 h-6 text-amber-600" />}
-          value={
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-semibold">{storageUsage}</span>
-              <StatusBadge status={storageStatus} />
-            </div>
-          }
-          footer="Storage metrics coming from backend"
-        />
+        <div>
+
+          <h1 className="text-4xl font-bold text-slate-800">
+            System Monitoring
+          </h1>
+
+          <p className="text-slate-500 mt-1 text-lg">
+            Real-time infrastructure and platform analytics
+          </p>
+
+        </div>
+
       </div>
+
+      {/* LIVE BADGE */}
+
+      <div className="bg-emerald-100 text-emerald-700 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-sm w-fit">
+
+        <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+
+        <span className="font-semibold">
+          Live Monitoring
+        </span>
+
+      </div>
+
     </div>
-  );
+
+    {/* MAIN GRID */}
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+
+      <Card
+        title="Total Users"
+        icon={<Users className="w-7 h-7 text-indigo-600" />}
+        value={userCount}
+        footer={`Updated: ${timestamps.users || "..."}`}
+        color="from-indigo-500 to-blue-500"
+      />
+
+      <Card
+        title="Total Tenants"
+        icon={<Database className="w-7 h-7 text-blue-600" />}
+        value={tenantCount}
+        footer={`Updated: ${timestamps.realtime || "..."}`}
+        color="from-blue-500 to-cyan-500"
+      />
+
+      <Card
+        title="Connected Devices"
+        icon={<Wifi className="w-7 h-7 text-cyan-600" />}
+        value={connectedDevices}
+        footer={`Updated: ${timestamps.backend || "..."}`}
+        color="from-cyan-500 to-sky-500"
+      />
+
+      <Card
+        title="Frontend Status"
+        icon={<Globe className="w-7 h-7 text-green-600" />}
+        value={<StatusBadge status={frontendStatus} />}
+        footer={`Updated: ${timestamps.frontend || "..."}`}
+        color="from-emerald-500 to-green-500"
+      />
+
+      <Card
+        title="Backend Health"
+        icon={<Server className="w-7 h-7 text-rose-600" />}
+        value={<StatusBadge status={backendHealth} />}
+        footer={`Updated: ${timestamps.backend || "..."}`}
+        color="from-rose-500 to-red-500"
+      />
+
+      
+
+    </div>
+
+  </div>
+);
 };
 
 const Card = ({ title, icon, value, footer }) => (

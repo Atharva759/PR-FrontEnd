@@ -79,13 +79,14 @@ const GaugeCard = ({ label, value, max }) => {
 const DevicesPage = () => {
   const { mac } = useParams();
   const navigate = useNavigate();
+  const [deviceType, setDeviceType] = useState("pzem");
 
   const [sensorData, setSensorData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const data = await getSensorData("pzem", mac);
+      const data = await getSensorData(deviceType, mac);
       setSensorData(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
@@ -97,7 +98,7 @@ const DevicesPage = () => {
     loadData();
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
-  }, [mac]);
+  }, [mac, deviceType]);
 
   const latest = sensorData[sensorData.length - 1];
 
@@ -121,34 +122,79 @@ const DevicesPage = () => {
       <div className="bg-white p-6 rounded-xl shadow mb-6 border border-blue-200 flex justify-start gap-2 items-center">
         <h2 className="text-lg font-semibold text-blue-700 mb-1">
           MAC Address
-        </h2> :
-        <p className="text-gray-700">{mac}</p>
+        </h2>{" "}
+        :<p className="text-gray-700">{mac}</p>
+      </div>
+      {/* DEVICE TYPE SWITCH */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-white p-2 rounded-full shadow-lg flex items-center gap-2 border border-blue-200">
+          <button
+            onClick={() => setDeviceType("pzem")}
+            className={`px-6 py-2 rounded-full font-semibold transition-all duration-300 cursor-pointer ${
+              deviceType === "pzem"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            PZEM
+          </button>
+
+          <button
+            onClick={() => setDeviceType("aqi")}
+            className={`px-6 py-2 rounded-full font-semibold transition-all duration-300 cursor-pointer ${
+              deviceType === "aqi"
+                ? "bg-green-600 text-white shadow-md"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            Water Level / AQI
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <p className="text-gray-600">Loading sensor data...</p>
       ) : (
         <>
-          {/* GAUGES */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <GaugeCard
-              label={`Voltage (${latest?.voltage ?? 0} V)`}
-              value={latest?.voltage}
-              max={260}
-            />
+          {/* PZEM GAUGES */}
+          {deviceType === "pzem" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <GaugeCard
+                label={`Voltage (${latest?.voltage ?? 0} V)`}
+                value={latest?.voltage}
+                max={260}
+              />
 
-            <GaugeCard
-              label={`Current (${latest?.current ?? 0} A)`}
-              value={latest?.current}
-              max={10}
-            />
+              <GaugeCard
+                label={`Current (${latest?.current ?? 0} A)`}
+                value={latest?.current}
+                max={10}
+              />
 
-            <GaugeCard
-              label={`Power (${latest?.power ?? 0} W)`}
-              value={latest?.power}
-              max={2000}
-            />
-          </div>
+              <GaugeCard
+                label={`Power (${latest?.power ?? 0} W)`}
+                value={latest?.power}
+                max={2000}
+              />
+            </div>
+          )}
+
+          {/* AQI GAUGES */}
+          {deviceType === "aqi" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <GaugeCard
+                label={`PM10 (${latest?.pm10 ?? 0})`}
+                value={latest?.pm10}
+                max={500}
+              />
+
+              <GaugeCard
+                label={`PM2.5 (${latest?.pm25 ?? 0})`}
+                value={latest?.pm25}
+                max={500}
+              />
+            </div>
+          )}
 
           {/* CHART */}
           <div className="bg-white p-6 rounded-xl shadow-md mt-10 border border-blue-200">
@@ -161,26 +207,43 @@ const DevicesPage = () => {
                 labels: sensorData.map((d) =>
                   new Date(d.timestamp).toLocaleTimeString(),
                 ),
-                datasets: [
-                  {
-                    label: "Voltage",
-                    data: sensorData.map((d) => d.voltage),
-                    borderColor: "#2563eb",
-                    tension: 0.4,
-                  },
-                  {
-                    label: "Current",
-                    data: sensorData.map((d) => d.current),
-                    borderColor: "#16a34a",
-                    tension: 0.4,
-                  },
-                  {
-                    label: "Power",
-                    data: sensorData.map((d) => d.power),
-                    borderColor: "#dc2626",
-                    tension: 0.4,
-                  },
-                ],
+
+                datasets:
+                  deviceType === "pzem"
+                    ? [
+                        {
+                          label: "Voltage",
+                          data: sensorData.map((d) => d.voltage),
+                          borderColor: "#2563eb",
+                          tension: 0.4,
+                        },
+                        {
+                          label: "Current",
+                          data: sensorData.map((d) => d.current),
+                          borderColor: "#16a34a",
+                          tension: 0.4,
+                        },
+                        {
+                          label: "Power",
+                          data: sensorData.map((d) => d.power),
+                          borderColor: "#dc2626",
+                          tension: 0.4,
+                        },
+                      ]
+                    : [
+                        {
+                          label: "PM10",
+                          data: sensorData.map((d) => d.pm10),
+                          borderColor: "#2563eb",
+                          tension: 0.4,
+                        },
+                        {
+                          label: "PM2.5",
+                          data: sensorData.map((d) => d.pm25),
+                          borderColor: "#16a34a",
+                          tension: 0.4,
+                        },
+                      ],
               }}
             />
           </div>

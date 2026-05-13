@@ -848,7 +848,7 @@ const TenantDashboard = () => {
                       {/* Right Section */}
                       <button
                         onClick={() => navigate(`/device/${device.mac}`)}
-                        className="btn-primary px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg text-white transition cursor-pointer"
+                        className="btn-primary px-3 py-1.5 text-sm font-medium  border border-blue-200 rounded-lg text-white transition cursor-pointer"
                       >
                         View Data
                       </button>
